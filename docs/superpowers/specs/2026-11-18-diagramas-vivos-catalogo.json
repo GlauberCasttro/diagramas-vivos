@@ -1,0 +1,2086 @@
+{
+ "gramaticas": [
+  {
+   "id": "fluxo",
+   "nome": "Fluxo de processo",
+   "layout": "ELK layered (direção DOWN/RIGHT, roteamento ortogonal), zonas opcionais como contêineres",
+   "nos": "card passo (nome+descrição), losango decisão, card gate vermelho, card memória azul, início/fim pílula, barra fork/join",
+   "arestas": "ortogonais com seta; rótulo de condição; verde = caminho feliz, vermelho = falha/retorno, tracejado = assíncrono",
+   "flow_vivo": "token percorre as arestas do caminho; em decisão o flow escolhe um ramo; fork dispara N tokens paralelos que se reencontram no join",
+   "paradas": "um flow por cenário (feliz primeiro, depois cada ramo de falha/retry); parada = cada nó do caminho, nota explica a condição tomada; câmera enquadra par de nós consecutivos",
+   "natural_ou_forcado": "natural"
+  },
+  {
+   "id": "sequencia",
+   "nome": "Sequência entre participantes",
+   "layout": "próprio: lifelines verticais em colunas fixas, eixo Y = ordem das mensagens; fragmentos alt/loop/opt como molduras",
+   "nos": "cabeçalho de participante (card ator/serviço/agente), barra de ativação, moldura de fragmento",
+   "arestas": "mensagem horizontal (sólida = síncrona, tracejada = retorno/assíncrona, vermelha = erro), auto-mensagem em gancho",
+   "flow_vivo": "a mensagem corre de uma lifeline a outra na ordem do eixo Y; barra de ativação acende enquanto o participante processa",
+   "paradas": "uma parada por mensagem (ou por grupo de mensagens agrupado por fragmento); câmera rola verticalmente acompanhando o tempo",
+   "natural_ou_forcado": "natural"
+  },
+  {
+   "id": "raias",
+   "nome": "Raias e colunas",
+   "layout": "ELK layered com partições (elk.partitioning) por raia; raias horizontais (swimlane/BPMN/blueprint) ou colunas verticais (jornada, kanban, SIPOC)",
+   "nos": "card passo dentro da raia, evento BPMN (círculo), gateway (losango), card emoção/touchpoint, card de item no kanban",
+   "arestas": "ortogonais; aresta que cruza raia = handoff (destacada); linha de visibilidade/interação como divisória tracejada",
+   "flow_vivo": "token percorre os passos e ganha destaque ao cruzar de raia (handoff pisca a fronteira); no kanban/jornada o card do item desliza de coluna em coluna",
+   "paradas": "paradas em cada passo, com parada obrigatória em cada handoff entre raias/colunas; nota diz quem passa o quê a quem",
+   "natural_ou_forcado": "natural (forçado só em SIPOC e user story map, que são tabulares)"
+  },
+  {
+   "id": "estados",
+   "nome": "Máquina de estados",
+   "layout": "ELK layered (estados em camadas pela ordem do ciclo de vida) com fallback ELK force para muitos ciclos; estados compostos como contêineres",
+   "nos": "estado arredondado (pílula), início (ponto cheio), fim (alvo), estado composto/região ortogonal, estado de erro vermelho",
+   "arestas": "transição com rótulo evento [guarda] / ação; auto-transição em laço; vermelho = transição de falha/cancelamento",
+   "flow_vivo": "o estado ativo acende (halo) e o token corre pela transição disparada; regiões ortogonais têm um ativo por região",
+   "paradas": "um flow por ciclo de vida (feliz até o estado final; outro para cancelamento/erro); parada = cada estado ativo, nota = evento que disparou",
+   "natural_ou_forcado": "natural"
+  },
+  {
+   "id": "contexto",
+   "nome": "Arquitetura em contêineres",
+   "layout": "ELK layered hierárquico (hierarchyHandling=INCLUDE_CHILDREN) com contêineres aninhados (fronteira de sistema, cluster, VPC, região, camada, bounded context)",
+   "nos": "card componente/serviço/sistema (nome+tecnologia+descrição), ator, banco (cilindro), fila/tópico, contêiner tracejado = fronteira, card externo cinza",
+   "arestas": "dependência/chamada com rótulo de protocolo; tracejada = assíncrona/evento; vermelha atravessando fronteira = cruzamento de confiança",
+   "flow_vivo": "uma requisição/mensagem atravessa componentes e fronteiras; em pub/sub um token se replica em N consumidores",
+   "paradas": "um flow por caso de uso (ex.: 'checkout', 'deploy', 'failover'); parada = cada componente tocado, câmera entra no contêiner quando cruza fronteira",
+   "natural_ou_forcado": "natural quando há um caso de uso; forçado em vistas puramente estáticas (ambientes, custos, IaC) — aí o flow vira 'tour' de componentes"
+  },
+  {
+   "id": "entidades",
+   "nome": "Entidades e tipos",
+   "layout": "próprio: cards-tabela (cabeçalho + linhas de atributos/métodos), posicionados por ELK layered (hierarquia/herança para cima) ou ELK force para ERD sem hierarquia",
+   "nos": "card-tabela com compartimentos (nome, atributos com tipo/PK/FK, métodos), interface/abstrata com estereótipo, pacote/namespace como contêiner",
+   "arestas": "relações UML/ER: herança (triângulo), composição (losango cheio), agregação (losango vazio), dependência tracejada, cardinalidade pé-de-galinha; arestas ancoradas na linha do atributo FK",
+   "flow_vivo": "o token percorre um caminho de navegação: join FK→PK, chamada de método entre classes, ou cadeia de herança; a linha do atributo envolvido acende",
+   "paradas": "um flow por consulta/caso de uso ('buscar pedidos de um cliente' = cliente→pedido→item); parada = entidade, nota = atributo/relação usada",
+   "natural_ou_forcado": "forçado (estrutura é estática); aceitável quando o flow é narrado como consulta/navegação"
+  },
+  {
+   "id": "arvore",
+   "nome": "Árvore e decomposição",
+   "layout": "ELK mrtree (raiz no topo ou à esquerda); opção radial para mapas grandes",
+   "nos": "card raiz destacado, card intermediário, folha; nó de decisão com pergunta, folha-resultado colorida (verde/vermelho)",
+   "arestas": "pai→filho retas/ortogonais; rótulo de resposta/condição em árvores de decisão; causa→efeito em árvore de problemas",
+   "flow_vivo": "o token desce da raiz até uma folha seguindo as respostas (decisão) ou sobe das folhas à raiz (problemas: causa→efeito; objetivos: meio→fim)",
+   "paradas": "um flow por caminho raiz-folha relevante (até 3); parada = cada nível, nota = pergunta/critério daquele nível",
+   "natural_ou_forcado": "natural em árvores de decisão; forçado em decomposição (épicos, objetivos) — flow vira percurso de leitura"
+  },
+  {
+   "id": "tempo",
+   "nome": "Eixo de tempo",
+   "layout": "próprio: eixo X = tempo (datas, sprints, ms), linhas Y = trilhas/recursos/fluxos; barras e marcos posicionados por escala",
+   "nos": "barra de atividade (início-fim), marco (losango), faixa/fase de fundo, card de entrega, linha de sinal (timing: degraus de estado)",
+   "arestas": "dependência fim→início entre barras (ortogonal); caminho crítico em vermelho; seta de migração entre versões",
+   "flow_vivo": "um cursor de 'agora' varre o eixo; barras se preenchem conforme o cursor passa; dependências disparam token quando a predecessora termina",
+   "paradas": "parada = cada marco/entrega (ou cada mudança de estado no timing); câmera acompanha o cursor; nota = o que fica pronto e o que destrava",
+   "natural_ou_forcado": "natural"
+  },
+  {
+   "id": "matriz",
+   "nome": "Matriz e grade",
+   "layout": "próprio: grade de células (linhas × colunas) com cabeçalhos fixos; variante quadrante 2×2/heat 5×5 com eixos",
+   "nos": "célula com valor/ícone/cor (R/A/C/I, peso, probabilidade×impacto, ✓/✗), cabeçalho de linha e de coluna, item posicionado no quadrante",
+   "arestas": "nenhuma por padrão; opcional: linha de ligação entre células relacionadas (rastreabilidade) ou seta de deslocamento de risco (antes→depois)",
+   "flow_vivo": "a célula acende e varre a linha/coluna correspondente; em rastreabilidade o destaque pula célula a célula (req→teste); em quadrante o item desliza da posição atual à alvo",
+   "paradas": "parada = uma linha (atividade/requisito/opção) ou uma célula crítica; nota = leitura daquela linha ('quem aprova', 'por que esta opção venceu')",
+   "natural_ou_forcado": "forçado (não há fluxo intrínseco); aceitável como leitura guiada por linha"
+  },
+  {
+   "id": "rede",
+   "nome": "Grafo de dependências",
+   "layout": "ELK layered (DAG) para dependências dirigidas; ELK force/stress para redes/malhas sem direção dominante",
+   "nos": "card nó (requisito, feature, ADR, serviço, host, contexto), nó afetado destacado, nó raiz de impacto vermelho",
+   "arestas": "dependência dirigida 'depende de'; não dirigida em topologia; rótulo de tipo de relação (context map: ACL, OHS, conformist, shared kernel)",
+   "flow_vivo": "propagação em ondas: um nó muda e o token se espalha BFS pelos dependentes (impacto) ou ao contrário pelos pré-requisitos (ordem de execução)",
+   "paradas": "parada = cada onda/camada de propagação (nível BFS), nota = o que é afetado/destravado; câmera abre o zoom a cada onda",
+   "natural_ou_forcado": "natural para impacto/ordem; forçado em topologia física sem tráfego definido"
+  },
+  {
+   "id": "ciclo",
+   "nome": "Ciclo e laço",
+   "layout": "próprio: nós em círculo (layout radial) com centro opcional (agente/memória); laços secundários como arcos internos; fallback ELK layered com aresta de retorno",
+   "nos": "card de etapa do ciclo, card central (estado/memória azul), gate de saída do laço (vermelho)",
+   "arestas": "arcos/ortogonais no sentido do ciclo; aresta de saída do laço (condição de parada) em verde; retorno em vermelho",
+   "flow_vivo": "o token circula continuamente pelo anel; contador de iteração no centro; a cada volta a memória central pisca (aprendizado acumulado)",
+   "paradas": "uma volta completa (parada = cada etapa) + parada final na condição de saída; nota explica o que muda entre iterações",
+   "natural_ou_forcado": "natural"
+  },
+  {
+   "id": "blocos",
+   "nome": "Blocos empilhados e mapas",
+   "layout": "próprio: pilha vertical de faixas (camadas, pirâmide), anéis concêntricos (clean/hexagonal/onion) ou ELK rectpacking (mapa de capacidades, treemap de custos/dívida)",
+   "nos": "faixa/camada com nome+descrição, anel, bloco proporcional (área = valor), sub-bloco aninhado, porta/adaptador na borda do anel",
+   "arestas": "poucas; seta de dependência permitida só para dentro/para baixo (regra de dependência); setas de requisição atravessando camadas",
+   "flow_vivo": "requisição atravessa as camadas de fora para dentro e volta (camadas/onion/hexagonal); em pirâmide/mapa o destaque sobe/varre bloco a bloco",
+   "paradas": "parada = cada camada/anel atravessado ou cada bloco do mapa em ordem de importância; nota = responsabilidade/regra da camada",
+   "natural_ou_forcado": "natural em arquitetura em camadas; forçado em pirâmide de testes, mapa de capacidades e treemap de custos"
+  }
+ ],
+ "tipos": [
+  {
+   "n": 1,
+   "nome": "Fluxograma",
+   "gramatica": "fluxo",
+   "preset": "passos, decisões losango, início/fim obrigatórios",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 2,
+   "nome": "Árvore de decisão",
+   "gramatica": "arvore",
+   "preset": "nós = perguntas; arestas = respostas; folhas = decisões",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 3,
+   "nome": "Fluxo condicional",
+   "gramatica": "fluxo",
+   "preset": "decisões encadeadas; cada ramo rotulado com condição",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 4,
+   "nome": "Atividades UML",
+   "gramatica": "fluxo",
+   "preset": "ações, fork/join barra, nó inicial/final UML, partições opcionais",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 5,
+   "nome": "Sequência",
+   "gramatica": "sequencia",
+   "preset": "lifelines; mensagens sync/async; fragmentos alt/loop/opt",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 6,
+   "nome": "Grafo de fluxo de controle (CFG)",
+   "gramatica": "fluxo",
+   "preset": "nós = blocos básicos; arestas = saltos true/false; entry/exit",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 7,
+   "nome": "Fluxo de dados (DFD)",
+   "gramatica": "contexto",
+   "preset": "processos, depósitos de dados, entidades externas; arestas = dados",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 8,
+   "nome": "Fluxo de eventos",
+   "gramatica": "fluxo",
+   "preset": "nós = eventos/handlers; arestas = emite/consome; assíncrono tracejado",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 9,
+   "nome": "Fluxo de exceções",
+   "gramatica": "fluxo",
+   "preset": "caminho feliz verde; ramos de exceção vermelhos até handler",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 10,
+   "nome": "Tratamento de erros",
+   "gramatica": "fluxo",
+   "preset": "ramos de erro, classificação, fallback; mesmo que exceções",
+   "alias_de": 9,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 11,
+   "nome": "Retry e backoff",
+   "gramatica": "ciclo",
+   "preset": "tentativa→falha→espera exponencial→tentativa; saída sucesso/esgotou",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 12,
+   "nome": "Compensação",
+   "gramatica": "fluxo",
+   "preset": "passos com ação compensatória em vermelho no sentido reverso",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 13,
+   "nome": "Aprovação",
+   "gramatica": "fluxo",
+   "preset": "solicitação, gates de aprovação vermelhos, aprovar/rejeitar/retornar",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 14,
+   "nome": "Fluxo paralelo",
+   "gramatica": "fluxo",
+   "preset": "fork/join; tokens paralelos simultâneos",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 15,
+   "nome": "Concorrência",
+   "gramatica": "sequencia",
+   "preset": "threads como lifelines; locks, esperas, região crítica",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 16,
+   "nome": "Autenticação e autorização",
+   "gramatica": "sequencia",
+   "preset": "usuário, app, IdP, API; token emitido/validado; negação vermelha",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 17,
+   "nome": "Execução de APIs",
+   "gramatica": "sequencia",
+   "preset": "cliente, gateway, serviço, banco; request/response com status",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 18,
+   "nome": "Navegação entre telas",
+   "gramatica": "estados",
+   "preset": "nós = telas; arestas = ações do usuário; tela inicial",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 19,
+   "nome": "Inicialização e encerramento",
+   "gramatica": "fluxo",
+   "preset": "fases boot→ready→drain→shutdown; checagens como gates",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 20,
+   "nome": "Processamento em lote",
+   "gramatica": "fluxo",
+   "preset": "ler lote→processar itens→checkpoint→próximo; falhas para quarentena",
+   "alias_de": null,
+   "categoria": "Fluxo e lógica"
+  },
+  {
+   "n": 21,
+   "nome": "C4 System Context",
+   "gramatica": "contexto",
+   "preset": "sistema central, pessoas e sistemas externos; sem internos",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 22,
+   "nome": "C4 Container",
+   "gramatica": "contexto",
+   "preset": "fronteira do sistema; apps, APIs, bancos com tecnologia",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 23,
+   "nome": "C4 Component",
+   "gramatica": "contexto",
+   "preset": "componentes dentro de um container; interfaces entre eles",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 24,
+   "nome": "C4 Code",
+   "gramatica": "entidades",
+   "preset": "classes/funções de um componente; nível C4 de código",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 25,
+   "nome": "Microsserviços",
+   "gramatica": "contexto",
+   "preset": "serviços independentes, banco por serviço, gateway, broker",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 26,
+   "nome": "Hexagonal",
+   "gramatica": "blocos",
+   "preset": "anéis: domínio no centro; portas na borda; adaptadores fora",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 27,
+   "nome": "Clean Architecture",
+   "gramatica": "blocos",
+   "preset": "anéis concêntricos; dependência só para dentro",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 28,
+   "nome": "Camadas",
+   "gramatica": "blocos",
+   "preset": "faixas empilhadas; chamada só para camada inferior",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 29,
+   "nome": "Monolítica",
+   "gramatica": "contexto",
+   "preset": "um deployável; módulos internos acoplados; banco único",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 30,
+   "nome": "Monólito modular",
+   "gramatica": "contexto",
+   "preset": "um deployável; módulos com fronteira e API pública",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 31,
+   "nome": "EDA",
+   "gramatica": "contexto",
+   "preset": "produtores, broker de eventos, consumidores; token replica",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 32,
+   "nome": "Serverless",
+   "gramatica": "contexto",
+   "preset": "funções, gatilhos, serviços gerenciados; eventos disparam funções",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 33,
+   "nome": "Distribuída",
+   "gramatica": "contexto",
+   "preset": "nós/regiões distribuídos; réplicas, coordenação, rede",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 34,
+   "nome": "SOA",
+   "gramatica": "contexto",
+   "preset": "serviços, ESB central, contratos de serviço",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 35,
+   "nome": "Plugins",
+   "gramatica": "contexto",
+   "preset": "núcleo host, ponto de extensão, plugins registrados",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 36,
+   "nome": "MVC",
+   "gramatica": "blocos",
+   "preset": "Model, View, Controller; ciclo de requisição pelas três",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 37,
+   "nome": "MVP",
+   "gramatica": "blocos",
+   "preset": "Model, View passiva, Presenter mediando",
+   "alias_de": 36,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 38,
+   "nome": "MVVM",
+   "gramatica": "blocos",
+   "preset": "Model, ViewModel, View; binding bidirecional",
+   "alias_de": 36,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 39,
+   "nome": "CQRS",
+   "gramatica": "contexto",
+   "preset": "lado comando e lado consulta separados; projeção entre eles",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 40,
+   "nome": "Event Sourcing",
+   "gramatica": "tempo",
+   "preset": "eventos imutáveis no eixo; replay reconstrói estado; snapshots",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 41,
+   "nome": "Saga",
+   "gramatica": "sequencia",
+   "preset": "serviços como lifelines; passos locais; compensações em vermelho",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 42,
+   "nome": "Filas",
+   "gramatica": "contexto",
+   "preset": "produtor, fila, consumidores; DLQ vermelha",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 43,
+   "nome": "Pub/Sub",
+   "gramatica": "contexto",
+   "preset": "publicador, tópico, N assinantes; fan-out do token",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 44,
+   "nome": "Streaming",
+   "gramatica": "fluxo",
+   "preset": "fonte→operadores (janela, join)→sink; fluxo contínuo",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 45,
+   "nome": "Referência",
+   "gramatica": "contexto",
+   "preset": "blocos genéricos da arquitetura de referência por camada",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 46,
+   "nome": "Integração",
+   "gramatica": "contexto",
+   "preset": "sistemas, middleware/iPaaS, conectores, formatos",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 47,
+   "nome": "Multi-tenant",
+   "gramatica": "contexto",
+   "preset": "contêiner por tenant; recursos compartilhados vs isolados",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 48,
+   "nome": "Híbridos",
+   "gramatica": "contexto",
+   "preset": "contêineres on-prem e cloud; ponte entre ambientes",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 49,
+   "nome": "Aplicações distribuídas com agentes de IA",
+   "gramatica": "contexto",
+   "preset": "agentes como serviços distribuídos; broker, memória, ferramentas",
+   "alias_de": null,
+   "categoria": "Arquitetura"
+  },
+  {
+   "n": 50,
+   "nome": "BPMN 2.0",
+   "gramatica": "raias",
+   "preset": "pool/lanes; eventos círculo, gateways losango, tarefas",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 51,
+   "nome": "Swimlane",
+   "gramatica": "raias",
+   "preset": "raia por papel; passos e handoffs entre raias",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 52,
+   "nome": "Value Stream Mapping",
+   "gramatica": "raias",
+   "preset": "etapas do fluxo de valor + escada lead/process time; estoques",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 53,
+   "nome": "SIPOC",
+   "gramatica": "raias",
+   "preset": "5 colunas fixas: Fornecedor, Entrada, Processo, Saída, Cliente",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 54,
+   "nome": "Jornada do cliente",
+   "gramatica": "raias",
+   "preset": "colunas = fases; linhas = ações, touchpoints, emoção",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 55,
+   "nome": "Service Blueprint",
+   "gramatica": "raias",
+   "preset": "raias: cliente, linha de frente, bastidores, suporte; visibilidade",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 56,
+   "nome": "Mapa de processos",
+   "gramatica": "fluxo",
+   "preset": "macroprocessos encadeados; entradas e saídas por processo",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 57,
+   "nome": "Cadeia de valor",
+   "gramatica": "blocos",
+   "preset": "atividades primárias em chevron; atividades de apoio em faixas",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 58,
+   "nome": "RACI",
+   "gramatica": "matriz",
+   "preset": "linhas = atividades; colunas = papéis; células R/A/C/I",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 59,
+   "nome": "Papéis e responsabilidades",
+   "gramatica": "contexto",
+   "preset": "papéis como cards; responsabilidades; relações de reporte",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 60,
+   "nome": "Árvore de objetivos",
+   "gramatica": "arvore",
+   "preset": "objetivo raiz; sub-objetivos; meios→fins de baixo para cima",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 61,
+   "nome": "Árvore de problemas",
+   "gramatica": "arvore",
+   "preset": "problema central; causas abaixo, efeitos acima",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 62,
+   "nome": "Árvore de decisão de negócio",
+   "gramatica": "arvore",
+   "preset": "perguntas de negócio; ramos com critério; folhas = ações",
+   "alias_de": 2,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 63,
+   "nome": "Regras de negócio",
+   "gramatica": "fluxo",
+   "preset": "condições → regras → resultados; tabela de decisão opcional",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 64,
+   "nome": "Matriz de decisão",
+   "gramatica": "matriz",
+   "preset": "linhas = opções; colunas = critérios com peso; total",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 65,
+   "nome": "Casos de uso de negócio",
+   "gramatica": "contexto",
+   "preset": "atores de negócio fora; casos de uso dentro da fronteira",
+   "alias_de": 186,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 66,
+   "nome": "Estados de um processo",
+   "gramatica": "estados",
+   "preset": "estados do processo; transições por evento de negócio",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 67,
+   "nome": "Handoff entre equipes",
+   "gramatica": "raias",
+   "preset": "raia por equipe; handoffs destacados com artefato entregue",
+   "alias_de": null,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 68,
+   "nome": "Ciclo de vida de uma operação",
+   "gramatica": "estados",
+   "preset": "estados da operação do início ao encerramento",
+   "alias_de": 164,
+   "categoria": "Processos e negócio"
+  },
+  {
+   "n": 69,
+   "nome": "Classes",
+   "gramatica": "entidades",
+   "preset": "classes com atributos/métodos; associações com multiplicidade",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 70,
+   "nome": "Objetos",
+   "gramatica": "entidades",
+   "preset": "instâncias nome:Classe com valores; links concretos",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 71,
+   "nome": "Pacotes",
+   "gramatica": "contexto",
+   "preset": "pacotes como contêineres; dependências entre pacotes",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 72,
+   "nome": "Componentes",
+   "gramatica": "contexto",
+   "preset": "componentes UML; interfaces providas/requeridas (pirulito/soquete)",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 73,
+   "nome": "Estrutura composta",
+   "gramatica": "contexto",
+   "preset": "classe composta com partes internas, portas e conectores",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 74,
+   "nome": "Interfaces",
+   "gramatica": "entidades",
+   "preset": "interfaces com assinaturas; implementações ligadas por realização",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 75,
+   "nome": "Dependências",
+   "gramatica": "rede",
+   "preset": "nós = módulos/pacotes; arestas = depende de; ciclos vermelhos",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 76,
+   "nome": "Herança",
+   "gramatica": "entidades",
+   "preset": "hierarquia de herança; base no topo; triângulo",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 77,
+   "nome": "Relacionamentos",
+   "gramatica": "entidades",
+   "preset": "associação, dependência, agregação, composição com rótulo",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 78,
+   "nome": "Agregação e composição",
+   "gramatica": "entidades",
+   "preset": "todo-parte; losango cheio/vazio; ciclo de vida das partes",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 79,
+   "nome": "Módulos",
+   "gramatica": "contexto",
+   "preset": "módulos com API pública; imports entre módulos",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 80,
+   "nome": "Namespaces",
+   "gramatica": "contexto",
+   "preset": "namespaces aninhados; tipos dentro; referências cruzadas",
+   "alias_de": 71,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 81,
+   "nome": "Abstrações",
+   "gramatica": "entidades",
+   "preset": "abstrações no topo; concretas abaixo; dependa da abstração",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 82,
+   "nome": "Contratos entre componentes",
+   "gramatica": "contexto",
+   "preset": "componentes; contrato como card na aresta (operações, versão)",
+   "alias_de": null,
+   "categoria": "Estrutural / OO"
+  },
+  {
+   "n": 83,
+   "nome": "ERD",
+   "gramatica": "entidades",
+   "preset": "entidades, atributos, PK/FK; cardinalidade pé-de-galinha",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 84,
+   "nome": "Schema relacional",
+   "gramatica": "entidades",
+   "preset": "tabelas com colunas e tipos; FKs ancoradas",
+   "alias_de": 88,
+   "categoria": "Dados"
+  },
+  {
+   "n": 85,
+   "nome": "Data Lineage",
+   "gramatica": "rede",
+   "preset": "fonte→transformações→tabelas→relatórios; impacto a jusante",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 86,
+   "nome": "Star/Snowflake",
+   "gramatica": "entidades",
+   "preset": "fato no centro; dimensões ao redor (snowflake: subdimensões)",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 87,
+   "nome": "Lógico de dados",
+   "gramatica": "entidades",
+   "preset": "entidades lógicas sem tipos físicos; chaves e relações",
+   "alias_de": 83,
+   "categoria": "Dados"
+  },
+  {
+   "n": 88,
+   "nome": "Físico de dados",
+   "gramatica": "entidades",
+   "preset": "tabelas, tipos, índices, partições; FKs",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 89,
+   "nome": "Normalização",
+   "gramatica": "fluxo",
+   "preset": "nós = tabela em cada forma normal; arestas = decomposição",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 90,
+   "nome": "ETL/ELT",
+   "gramatica": "fluxo",
+   "preset": "extract→transform→load (ou load→transform); staging",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 91,
+   "nome": "Pipeline de dados",
+   "gramatica": "fluxo",
+   "preset": "estágios do pipeline; fontes, transformações, destinos, falhas",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 92,
+   "nome": "Sincronização",
+   "gramatica": "sequencia",
+   "preset": "origem, sincronizador, destino; delta, conflito, ack",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 93,
+   "nome": "Replicação",
+   "gramatica": "contexto",
+   "preset": "primário e réplicas; replicação sync/async; lag",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 94,
+   "nome": "Particionamento",
+   "gramatica": "contexto",
+   "preset": "tabela dividida em partições por chave/intervalo; roteador",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 95,
+   "nome": "Sharding",
+   "gramatica": "contexto",
+   "preset": "roteador de shard; shards com faixa de chave",
+   "alias_de": 94,
+   "categoria": "Dados"
+  },
+  {
+   "n": 96,
+   "nome": "Cache",
+   "gramatica": "sequencia",
+   "preset": "app, cache, banco; hit verde, miss busca e popula",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 97,
+   "nome": "Ciclo de vida dos dados",
+   "gramatica": "estados",
+   "preset": "criado→ativo→arquivado→expurgado; regras por transição",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 98,
+   "nome": "Retenção e arquivamento",
+   "gramatica": "estados",
+   "preset": "hot→warm→cold→arquivo→descarte; prazos de retenção",
+   "alias_de": 97,
+   "categoria": "Dados"
+  },
+  {
+   "n": 99,
+   "nome": "Migração de banco",
+   "gramatica": "tempo",
+   "preset": "fases expand→migrate→contract no eixo; rollback como marco",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 100,
+   "nome": "Consistência e transações",
+   "gramatica": "sequencia",
+   "preset": "participantes da transação; prepare/commit/rollback",
+   "alias_de": null,
+   "categoria": "Dados"
+  },
+  {
+   "n": 101,
+   "nome": "Cloud Architecture",
+   "gramatica": "contexto",
+   "preset": "região, VPC, sub-redes como contêineres; serviços gerenciados",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 102,
+   "nome": "Kubernetes",
+   "gramatica": "contexto",
+   "preset": "cluster, namespace, deployment, pod, service, ingress",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 103,
+   "nome": "CI/CD Pipeline",
+   "gramatica": "fluxo",
+   "preset": "commit→build→testes→gates→deploy por ambiente",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 104,
+   "nome": "Network Topology",
+   "gramatica": "rede",
+   "preset": "dispositivos, links, sub-redes; layout force",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 105,
+   "nome": "Deployment UML",
+   "gramatica": "contexto",
+   "preset": "nós de execução com artefatos implantados; comunicação",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 106,
+   "nome": "Containers",
+   "gramatica": "contexto",
+   "preset": "host, runtime, containers, volumes, redes",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 107,
+   "nome": "Topologia de servidores",
+   "gramatica": "contexto",
+   "preset": "servidores por papel e zona; conexões",
+   "alias_de": 105,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 108,
+   "nome": "Disponibilidade",
+   "gramatica": "contexto",
+   "preset": "componentes redundantes; health check; falha de zona",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 109,
+   "nome": "Escalabilidade H/V",
+   "gramatica": "contexto",
+   "preset": "antes/depois: instância maior (V) ou mais réplicas (H)",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 110,
+   "nome": "Alta disponibilidade",
+   "gramatica": "contexto",
+   "preset": "ativo/ativo ou ativo/passivo; failover destacado",
+   "alias_de": 108,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 111,
+   "nome": "Disaster recovery",
+   "gramatica": "fluxo",
+   "preset": "incidente→declaração→failover região→validação; RTO/RPO",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 112,
+   "nome": "Backup e restore",
+   "gramatica": "fluxo",
+   "preset": "agendamento backup→cópia→verificação; restore inverso",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 113,
+   "nome": "Balanceamento de carga",
+   "gramatica": "contexto",
+   "preset": "LB à frente; pool de instâncias; algoritmo; health check",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 114,
+   "nome": "Service mesh",
+   "gramatica": "contexto",
+   "preset": "pods com sidecar; control plane; mTLS entre proxies",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 115,
+   "nome": "Observabilidade",
+   "gramatica": "fluxo",
+   "preset": "app emite logs/métricas/traces→coletor→backend→alertas",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 116,
+   "nome": "IaC",
+   "gramatica": "fluxo",
+   "preset": "código IaC→plan→review→apply→estado; drift",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 117,
+   "nome": "Ambientes (dev/stg/prod)",
+   "gramatica": "contexto",
+   "preset": "contêiner por ambiente; promoção dev→stg→prod",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 118,
+   "nome": "Release e rollout",
+   "gramatica": "tempo",
+   "preset": "ondas de rollout no eixo; % de tráfego; gates",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 119,
+   "nome": "Blue-green",
+   "gramatica": "contexto",
+   "preset": "ambientes azul e verde; roteador troca o tráfego",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 120,
+   "nome": "Canary",
+   "gramatica": "tempo",
+   "preset": "% de tráfego crescente por etapa; métrica decide rollback",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 121,
+   "nome": "Autoscaling",
+   "gramatica": "ciclo",
+   "preset": "métrica→decisão de escala→ajuste réplicas→estabiliza",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 122,
+   "nome": "Conectividade entre clouds",
+   "gramatica": "contexto",
+   "preset": "clouds como contêineres; VPN/interconnect/peering",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 123,
+   "nome": "Custos e alocação",
+   "gramatica": "blocos",
+   "preset": "treemap: área = custo; agrupado por time/serviço",
+   "alias_de": null,
+   "categoria": "Infra, cloud, DevOps"
+  },
+  {
+   "n": 124,
+   "nome": "Integração entre sistemas",
+   "gramatica": "contexto",
+   "preset": "sistemas; interfaces e protocolos nas arestas",
+   "alias_de": 46,
+   "categoria": "Integração"
+  },
+  {
+   "n": 125,
+   "nome": "API Gateway",
+   "gramatica": "contexto",
+   "preset": "clientes→gateway (auth, rate limit, rota)→serviços",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 126,
+   "nome": "REST",
+   "gramatica": "sequencia",
+   "preset": "cliente, API, recurso; verbo, rota, status",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 127,
+   "nome": "gRPC",
+   "gramatica": "sequencia",
+   "preset": "cliente stub, servidor; unário/streaming",
+   "alias_de": 126,
+   "categoria": "Integração"
+  },
+  {
+   "n": 128,
+   "nome": "GraphQL",
+   "gramatica": "sequencia",
+   "preset": "cliente, servidor GraphQL, resolvers, fontes",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 129,
+   "nome": "Mensageria",
+   "gramatica": "contexto",
+   "preset": "produtores, broker, consumidores; tipo de mensagem",
+   "alias_de": 42,
+   "categoria": "Integração"
+  },
+  {
+   "n": 130,
+   "nome": "Filas RabbitMQ",
+   "gramatica": "contexto",
+   "preset": "exchange, bindings, filas, consumidores; DLX",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 131,
+   "nome": "Tópicos Kafka",
+   "gramatica": "contexto",
+   "preset": "tópicos com partições; grupos de consumidores; offsets",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 132,
+   "nome": "Produtores e consumidores",
+   "gramatica": "contexto",
+   "preset": "produtores à esquerda, canal, consumidores à direita",
+   "alias_de": 42,
+   "categoria": "Integração"
+  },
+  {
+   "n": 133,
+   "nome": "Webhooks",
+   "gramatica": "sequencia",
+   "preset": "provedor dispara POST ao assinante; retry; assinatura HMAC",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 134,
+   "nome": "WebSockets",
+   "gramatica": "sequencia",
+   "preset": "handshake upgrade; mensagens bidirecionais; fechamento",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 135,
+   "nome": "SignalR",
+   "gramatica": "sequencia",
+   "preset": "hub, clientes; grupos; broadcast",
+   "alias_de": 134,
+   "categoria": "Integração"
+  },
+  {
+   "n": 136,
+   "nome": "Síncrona e assíncrona",
+   "gramatica": "sequencia",
+   "preset": "lado a lado: chamada bloqueante vs mensagem e callback",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 137,
+   "nome": "Contratos de API",
+   "gramatica": "entidades",
+   "preset": "endpoints como cards; request/response schemas; versão",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 138,
+   "nome": "Transformação de mensagens",
+   "gramatica": "fluxo",
+   "preset": "mensagem de entrada→mapeamento→enriquecimento→saída",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 139,
+   "nome": "Roteamento de mensagens",
+   "gramatica": "fluxo",
+   "preset": "roteador de conteúdo; regras; destinos por condição",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 140,
+   "nome": "Orquestração e coreografia",
+   "gramatica": "sequencia",
+   "preset": "orquestrador central vs eventos entre serviços (dois flows)",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 141,
+   "nome": "Circuit breaker",
+   "gramatica": "estados",
+   "preset": "fechado→aberto→meio-aberto; limiares de falha",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 142,
+   "nome": "Retry e DLQ",
+   "gramatica": "fluxo",
+   "preset": "consumo→falha→retry N vezes→DLQ vermelha",
+   "alias_de": null,
+   "categoria": "Integração"
+  },
+  {
+   "n": 143,
+   "nome": "Comunicação entre bounded contexts",
+   "gramatica": "rede",
+   "preset": "contextos; relações ACL/OHS/conformist; tradução",
+   "alias_de": 198,
+   "categoria": "Integração"
+  },
+  {
+   "n": 144,
+   "nome": "Threat Model",
+   "gramatica": "contexto",
+   "preset": "componentes, fronteiras de confiança, ameaças STRIDE nas arestas",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 145,
+   "nome": "Data Flow Security",
+   "gramatica": "contexto",
+   "preset": "DFD com classificação do dado e controles por fluxo",
+   "alias_de": 7,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 146,
+   "nome": "Trust Boundary",
+   "gramatica": "contexto",
+   "preset": "zonas de confiança aninhadas; fluxos que cruzam em vermelho",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 147,
+   "nome": "OAuth2/OIDC",
+   "gramatica": "sequencia",
+   "preset": "usuário, cliente, authorization server, resource server; code+PKCE",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 148,
+   "nome": "RBAC",
+   "gramatica": "rede",
+   "preset": "usuários→papéis→permissões→recursos (camadas)",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 149,
+   "nome": "ABAC",
+   "gramatica": "fluxo",
+   "preset": "requisição→PEP→PDP avalia atributos→permit/deny",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 150,
+   "nome": "Gestão de identidade",
+   "gramatica": "fluxo",
+   "preset": "joiner/mover/leaver; provisionamento e desprovisionamento",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 151,
+   "nome": "Criptografia de dados",
+   "gramatica": "contexto",
+   "preset": "dado em repouso/trânsito; KMS; chaves por camada",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 152,
+   "nome": "Gestão de secrets",
+   "gramatica": "sequencia",
+   "preset": "app, cofre, provedor; emissão, leitura, rotação",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 153,
+   "nome": "Zero Trust",
+   "gramatica": "fluxo",
+   "preset": "toda requisição passa por verificação contínua; nenhuma zona confiável",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 154,
+   "nome": "Segmentação de rede",
+   "gramatica": "contexto",
+   "preset": "segmentos de rede como contêineres; firewalls entre eles",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 155,
+   "nome": "Superfície de ataque",
+   "gramatica": "contexto",
+   "preset": "pontos de entrada expostos destacados; caminhos até ativos",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 156,
+   "nome": "Vulnerabilidades e dependências",
+   "gramatica": "rede",
+   "preset": "dependências diretas/transitivas; vulneráveis vermelhos; propagação",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 157,
+   "nome": "Fluxo de auditoria",
+   "gramatica": "fluxo",
+   "preset": "ação→evento de auditoria→coleta→armazenamento imutável→revisão",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 158,
+   "nome": "Segurança de APIs",
+   "gramatica": "fluxo",
+   "preset": "camadas de controle em série: TLS, auth, rate limit, validação",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 159,
+   "nome": "Isolamento de tenants",
+   "gramatica": "contexto",
+   "preset": "tenants em contêineres; barreiras; recursos compartilhados",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 160,
+   "nome": "Ciclo de vida de credenciais",
+   "gramatica": "estados",
+   "preset": "emitida→ativa→rotacionada→revogada/expirada",
+   "alias_de": null,
+   "categoria": "Segurança"
+  },
+  {
+   "n": 161,
+   "nome": "State Machine",
+   "gramatica": "estados",
+   "preset": "estados, transições evento[guarda]/ação; inicial/final obrigatórios",
+   "alias_de": null,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 162,
+   "nome": "Timing",
+   "gramatica": "tempo",
+   "preset": "linhas de estado por participante; degraus no eixo de tempo",
+   "alias_de": null,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 163,
+   "nome": "Interaction Overview",
+   "gramatica": "fluxo",
+   "preset": "nós = interações (refs a sequências); controle de atividade",
+   "alias_de": null,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 164,
+   "nome": "Ciclo de vida de entidades",
+   "gramatica": "estados",
+   "preset": "estados da entidade do nascimento ao descarte",
+   "alias_de": null,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 165,
+   "nome": "Transição de status",
+   "gramatica": "estados",
+   "preset": "status e transições permitidas; transições proibidas omitidas",
+   "alias_de": 161,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 166,
+   "nome": "Comportamento de serviços",
+   "gramatica": "estados",
+   "preset": "estados do serviço (iniciando, saudável, degradado, parado)",
+   "alias_de": null,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 167,
+   "nome": "Estados de sessão",
+   "gramatica": "estados",
+   "preset": "anônimo→autenticado→expirada→encerrada; timeouts",
+   "alias_de": 164,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 168,
+   "nome": "Estados de pedidos",
+   "gramatica": "estados",
+   "preset": "criado→pago→enviado→entregue; cancelado/devolvido",
+   "alias_de": 164,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 169,
+   "nome": "Estados de workflows",
+   "gramatica": "estados",
+   "preset": "estados de workflow e de cada passo; retomada",
+   "alias_de": 164,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 170,
+   "nome": "Comportamento concorrente",
+   "gramatica": "estados",
+   "preset": "regiões ortogonais paralelas; sincronização entre elas",
+   "alias_de": null,
+   "categoria": "Estados e comportamento"
+  },
+  {
+   "n": 171,
+   "nome": "Pirâmide de testes",
+   "gramatica": "blocos",
+   "preset": "pirâmide: unitário base, integração meio, E2E topo; proporção",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 172,
+   "nome": "Estratégia de testes",
+   "gramatica": "blocos",
+   "preset": "níveis de teste por camada; tipo, ferramenta, quando roda",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 173,
+   "nome": "Cobertura de requisitos",
+   "gramatica": "matriz",
+   "preset": "linhas = requisitos; colunas = testes/status; lacunas vermelhas",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 174,
+   "nome": "Rastreabilidade requisito→teste",
+   "gramatica": "matriz",
+   "preset": "requisito→caso de teste→resultado; ligação célula a célula",
+   "alias_de": 190,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 175,
+   "nome": "Execução de testes",
+   "gramatica": "fluxo",
+   "preset": "seleção→setup→execução→relatório; falhas para triagem",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 176,
+   "nome": "Testes de integração",
+   "gramatica": "sequencia",
+   "preset": "sistema sob teste e dependências reais/fakes; asserções",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 177,
+   "nome": "E2E",
+   "gramatica": "sequencia",
+   "preset": "usuário, UI, backend, banco; jornada ponta a ponta",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 178,
+   "nome": "Testes de contrato",
+   "gramatica": "sequencia",
+   "preset": "consumidor gera pacto; provedor verifica; broker",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 179,
+   "nome": "Carga",
+   "gramatica": "tempo",
+   "preset": "rampa de usuários no eixo; latência/erros por fase",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 180,
+   "nome": "Resiliência",
+   "gramatica": "fluxo",
+   "preset": "falha injetada→detecção→mitigação→recuperação",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 181,
+   "nome": "Caos",
+   "gramatica": "ciclo",
+   "preset": "hipótese→injeção de falha→observação→aprendizado",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 182,
+   "nome": "Matriz de riscos",
+   "gramatica": "matriz",
+   "preset": "heat 5×5 probabilidade×impacto; riscos posicionados",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 183,
+   "nome": "Dependências entre testes",
+   "gramatica": "rede",
+   "preset": "testes e fixtures; ordem de execução; dependência compartilhada",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 184,
+   "nome": "Ciclo de vida de bugs",
+   "gramatica": "estados",
+   "preset": "novo→triado→em correção→verificado→fechado; reaberto",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 185,
+   "nome": "Qualidade de código",
+   "gramatica": "blocos",
+   "preset": "mapa de módulos com métrica (complexidade, cobertura); área/cor",
+   "alias_de": null,
+   "categoria": "Testes e qualidade"
+  },
+  {
+   "n": 186,
+   "nome": "Use Case",
+   "gramatica": "contexto",
+   "preset": "atores fora; casos de uso ovais dentro; include/extend",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 187,
+   "nome": "User Story Map",
+   "gramatica": "matriz",
+   "preset": "backbone de atividades nas colunas; histórias por release nas linhas",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 188,
+   "nome": "Requisitos funcionais",
+   "gramatica": "arvore",
+   "preset": "requisitos agrupados por área funcional; IDs",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 189,
+   "nome": "Requisitos não funcionais",
+   "gramatica": "arvore",
+   "preset": "atributos de qualidade→cenários mensuráveis (árvore de utilidade)",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 190,
+   "nome": "Rastreabilidade de requisitos",
+   "gramatica": "matriz",
+   "preset": "requisito ↔ design ↔ código ↔ teste; células ligadas",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 191,
+   "nome": "Dependências entre requisitos",
+   "gramatica": "rede",
+   "preset": "requisitos e 'depende de'; ordem de implementação",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 192,
+   "nome": "Decomposição de épicos e features",
+   "gramatica": "arvore",
+   "preset": "épico→features→histórias→tasks",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 193,
+   "nome": "Contexto de domínio",
+   "gramatica": "contexto",
+   "preset": "domínio central, subdomínios, atores, sistemas vizinhos",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 194,
+   "nome": "Domain Storytelling",
+   "gramatica": "sequencia",
+   "preset": "atores e objetos de trabalho; frases numeradas atividade a atividade",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 195,
+   "nome": "Event Storming",
+   "gramatica": "tempo",
+   "preset": "eventos laranja no eixo; comandos, agregados, políticas",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 196,
+   "nome": "DDD",
+   "gramatica": "contexto",
+   "preset": "agregados, entidades, value objects dentro de contextos",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 197,
+   "nome": "Bounded Contexts",
+   "gramatica": "contexto",
+   "preset": "bounded contexts como contêineres; linguagem própria",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 198,
+   "nome": "Context Map",
+   "gramatica": "rede",
+   "preset": "contextos; padrões de relação upstream/downstream",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 199,
+   "nome": "Decisões arquiteturais",
+   "gramatica": "tempo",
+   "preset": "ADRs no eixo; status proposto/aceito/substituído",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 200,
+   "nome": "Dependências entre ADRs",
+   "gramatica": "rede",
+   "preset": "ADRs; substitui/refina/depende; cadeia de impacto",
+   "alias_de": null,
+   "categoria": "Requisitos e documentação"
+  },
+  {
+   "n": 201,
+   "nome": "Multi-Agent Architecture",
+   "gramatica": "contexto",
+   "preset": "agentes especializados, orquestrador, ferramentas, memória azul",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 202,
+   "nome": "Agent Execution Flow",
+   "gramatica": "fluxo",
+   "preset": "receber tarefa→planejar→agir→observar→responder; gates",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 203,
+   "nome": "RAG",
+   "gramatica": "fluxo",
+   "preset": "consulta→embedding→busca vetorial→contexto→LLM→resposta",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 204,
+   "nome": "Agent Memory",
+   "gramatica": "contexto",
+   "preset": "memórias curto/longo prazo, episódica/semântica azuis; leitura/escrita",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 205,
+   "nome": "Self-Improvement Loop",
+   "gramatica": "ciclo",
+   "preset": "executar→avaliar→extrair lição→atualizar memória/skill",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 206,
+   "nome": "Agent Orchestration",
+   "gramatica": "sequencia",
+   "preset": "orquestrador e subagentes; dispatch, retorno, agregação",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 207,
+   "nome": "Agent Handoff",
+   "gramatica": "raias",
+   "preset": "raia por agente; handoff com contexto transferido",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 208,
+   "nome": "Agent Swarm",
+   "gramatica": "rede",
+   "preset": "agentes pares; mensagens em malha; layout force",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 209,
+   "nome": "Planner-Executor",
+   "gramatica": "raias",
+   "preset": "raia planner e raia executor; plano→passos→replanejar",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 210,
+   "nome": "Reflection Loop",
+   "gramatica": "ciclo",
+   "preset": "gerar→criticar→revisar; saída quando aprovado",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 211,
+   "nome": "Human-in-the-Loop",
+   "gramatica": "fluxo",
+   "preset": "agente propõe→gate humano vermelho→aprovar/editar/rejeitar",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 212,
+   "nome": "Tool Calling Flow",
+   "gramatica": "sequencia",
+   "preset": "usuário, LLM, runtime de ferramentas, ferramenta; tool_use/tool_result",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 213,
+   "nome": "MCP Architecture",
+   "gramatica": "contexto",
+   "preset": "host, cliente MCP, servidores MCP, recursos/ferramentas",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 214,
+   "nome": "Skills Architecture",
+   "gramatica": "contexto",
+   "preset": "agente, registry de skills, skill carregada sob demanda, recursos",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 215,
+   "nome": "Agent Lifecycle",
+   "gramatica": "estados",
+   "preset": "criado→configurado→ativo→pausado→aposentado",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 216,
+   "nome": "Agent State Machine",
+   "gramatica": "estados",
+   "preset": "idle→pensando→chamando ferramenta→aguardando→concluído/erro",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 217,
+   "nome": "Context Management",
+   "gramatica": "blocos",
+   "preset": "janela de contexto em faixas: sistema, memória, histórico, ferramentas; compactação",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 218,
+   "nome": "Prompt Execution Flow",
+   "gramatica": "fluxo",
+   "preset": "template→montagem de contexto→chamada LLM→parse→validação",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 219,
+   "nome": "Memory Retrieval Flow",
+   "gramatica": "fluxo",
+   "preset": "consulta→busca na memória→rerank→injeção no contexto",
+   "alias_de": 203,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 220,
+   "nome": "Multi-Agent Communication",
+   "gramatica": "sequencia",
+   "preset": "agentes como lifelines; mensagens, broadcast, protocolo",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 221,
+   "nome": "Agent Evaluation Pipeline",
+   "gramatica": "fluxo",
+   "preset": "dataset→execução→graders→métricas→gate de regressão",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 222,
+   "nome": "Agent Benchmarking",
+   "gramatica": "matriz",
+   "preset": "linhas = agentes/modelos; colunas = tarefas/métricas",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 223,
+   "nome": "Agent Safety Guardrails",
+   "gramatica": "fluxo",
+   "preset": "entrada→filtros→agente→checagem de saída; bloqueios vermelhos",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 224,
+   "nome": "Autonomous Coding Agent Flow",
+   "gramatica": "fluxo",
+   "preset": "issue→planejar→editar→testar→corrigir→PR; laço de teste",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 225,
+   "nome": "Code Generation and Validation Pipeline",
+   "gramatica": "fluxo",
+   "preset": "gerar código→lint→build→testes→review→aceitar/reprovar",
+   "alias_de": 224,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 226,
+   "nome": "Self-Healing",
+   "gramatica": "ciclo",
+   "preset": "detectar→diagnosticar→corrigir→verificar; escalar se falhar",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 227,
+   "nome": "Self-Evolving System",
+   "gramatica": "ciclo",
+   "preset": "operar→medir→propor mudança→validar→incorporar",
+   "alias_de": 205,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 228,
+   "nome": "Feedback and Learning Loop",
+   "gramatica": "ciclo",
+   "preset": "ação→feedback→aprendizado→ajuste de comportamento",
+   "alias_de": 205,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 229,
+   "nome": "Agent Observability",
+   "gramatica": "contexto",
+   "preset": "agentes emitem traces/tokens/custos→coletor→painéis",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 230,
+   "nome": "Agent Failure Recovery",
+   "gramatica": "fluxo",
+   "preset": "falha detectada→classificar→retry/fallback/escalar humano",
+   "alias_de": null,
+   "categoria": "IA, agentes, harness"
+  },
+  {
+   "n": 231,
+   "nome": "Roadmap",
+   "gramatica": "tempo",
+   "preset": "trimestres no eixo; trilhas por tema; iniciativas",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 232,
+   "nome": "Timeline",
+   "gramatica": "tempo",
+   "preset": "eventos/marcos datados em uma linha",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 233,
+   "nome": "Gantt",
+   "gramatica": "tempo",
+   "preset": "barras por tarefa; dependências fim-início; marcos",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 234,
+   "nome": "Dependency Graph",
+   "gramatica": "rede",
+   "preset": "DAG de itens; arestas = depende de; ordem topológica",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 235,
+   "nome": "Critical Path",
+   "gramatica": "tempo",
+   "preset": "Gantt com caminho crítico vermelho; folgas",
+   "alias_de": 233,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 236,
+   "nome": "Feature Dependency Map",
+   "gramatica": "rede",
+   "preset": "features e dependências; bloqueadas destacadas",
+   "alias_de": 234,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 237,
+   "nome": "Sprint Workflow",
+   "gramatica": "ciclo",
+   "preset": "planning→execução→review→retro; daily dentro",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 238,
+   "nome": "Kanban Flow",
+   "gramatica": "raias",
+   "preset": "colunas = etapas WIP; cards deslizam; limites de WIP",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 239,
+   "nome": "Release Train",
+   "gramatica": "tempo",
+   "preset": "PIs/trens no eixo; equipes como trilhas; sincronização",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 240,
+   "nome": "Risk Assessment Map",
+   "gramatica": "matriz",
+   "preset": "quadrante probabilidade×impacto com riscos e mitigação",
+   "alias_de": 182,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 241,
+   "nome": "Impact Analysis",
+   "gramatica": "rede",
+   "preset": "mudança na raiz; ondas de impacto pelos dependentes",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 242,
+   "nome": "Architecture Evolution",
+   "gramatica": "tempo",
+   "preset": "versões da arquitetura no eixo; o que entra e sai",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 243,
+   "nome": "Migration Roadmap",
+   "gramatica": "tempo",
+   "preset": "fases de migração no eixo; coexistência legado/novo",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 244,
+   "nome": "Technical Debt Map",
+   "gramatica": "matriz",
+   "preset": "quadrante esforço×impacto; itens de dívida posicionados",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  },
+  {
+   "n": 245,
+   "nome": "System Capability Map",
+   "gramatica": "blocos",
+   "preset": "rectpacking: domínios→capacidades; cor = maturidade",
+   "alias_de": null,
+   "categoria": "Planejamento e evolução"
+  }
+ ]
+}
