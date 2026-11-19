@@ -38,3 +38,12 @@ test('coleta todos os erros', () => {
   const d = base(); d.nos[0].papel = 'verde'; d.arestas[0].para = 'z';
   assert.ok(validar(d).erros.length >= 2);
 });
+test('nó papel externo é válido', () => {
+  const d = base(); d.nos[0].papel = 'externo'; assert.equal(validar(d).ok, true);
+});
+test('aresta papel retorno é válido', () => {
+  const d = base(); d.arestas[0].papel = 'retorno'; assert.equal(validar(d).ok, true);
+});
+test('aresta papel gate é inválido', () => {
+  const d = base(); d.arestas[0].papel = 'gate'; temErro(d, 'arestas[a-b].papel');
+});

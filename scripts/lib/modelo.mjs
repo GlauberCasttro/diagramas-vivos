@@ -1,5 +1,6 @@
 // Validação do diagram.json (F0). Sem dependências; coleta todos os erros.
-export const PAPEIS = ['feliz', 'gate', 'memoria', 'neutro'];
+export const PAPEIS_NO = ['feliz', 'gate', 'memoria', 'neutro', 'externo'];
+export const PAPEIS_ARESTA = ['sequencia', 'feliz', 'retorno', 'falha'];
 export const NIVEIS = ['informado', 'proposto'];
 
 const str = (v) => typeof v === 'string' && v.length > 0;
@@ -48,7 +49,7 @@ export function validar(d) {
     usar(n.id);
     const r = `nos[${n.id}]`;
     if (!str(n.nome)) erros.push(`${r}.nome: obrigatório`);
-    if (!PAPEIS.includes(n.papel)) erros.push(`${r}.papel: ${n.papel} (aceita ${PAPEIS.join('|')})`);
+    if (!PAPEIS_NO.includes(n.papel)) erros.push(`${r}.papel: ${n.papel} (aceita ${PAPEIS_NO.join('|')})`);
     if (n.zona !== undefined && !zonaIds.has(n.zona)) erros.push(`${r}.zona: ${n.zona}`);
     nivel(n, r);
   });
@@ -61,7 +62,7 @@ export function validar(d) {
     const r = `arestas[${a.id}]`;
     if (!nosIds.has(a.de)) erros.push(`${r}.de: ${a.de}`);
     if (!nosIds.has(a.para)) erros.push(`${r}.para: ${a.para}`);
-    if (!PAPEIS.includes(a.papel)) erros.push(`${r}.papel: ${a.papel} (aceita ${PAPEIS.join('|')})`);
+    if (!PAPEIS_ARESTA.includes(a.papel)) erros.push(`${r}.papel: ${a.papel} (aceita ${PAPEIS_ARESTA.join('|')})`);
     nivel(a, r);
   });
 

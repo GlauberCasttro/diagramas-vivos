@@ -8,7 +8,8 @@
   flows: [{id, titulo, passos: [{ref, nota}]}] }
 ```
 
-- `papel` (nó e aresta): `feliz` (ator/caminho feliz), `gate` (gate/falha), `memoria` (estado), `neutro`.
+- `papel` de nó: `feliz`, `gate`, `memoria`, `neutro` ou `externo`.
+- `papel` de aresta: `sequencia`, `feliz`, `retorno` ou `falha`.
 - `nivel`: `informado` ou `proposto` (F0 não aceita `inferido`).
 - Ids são únicos entre nós e arestas. `de`/`para` apontam para nós; `zona` para uma zona.
 - Cada flow tem no mínimo 2 passos; `ref` aponta para um id de nó ou aresta; `nota` é obrigatória.
