@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test tests/" },
+  "scripts": { "test": "node --test tests/*.test.mjs" },
   "dependencies": {
     "elkjs": "0.9.3",
     "fontkit": "2.0.4",
