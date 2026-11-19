@@ -3,9 +3,11 @@
 
 Uso: python3 scripts/render_check.py <NN-slug.html> [--saida <dir>]
 
-Gera (viewport 1600x1000, escala 2): svg-escuro.png, svg-claro.png e, para cada
+Gera (viewport 1600x1000, escala 2): svg-escuro.png, svg-claro.png, o HTML em
+repouso (sem #passo) em repouso-escuro.png e repouso-claro.png e, para cada
 passo de todos os flows em sequencia (via #passo=N), passo-NN-escuro.png e
-passo-NN-claro.png. Pre-requisitos ao lado do HTML: NN-slug.svg e NN-slug.diagram.json
+passo-NN-claro.png. Antes de capturar, apaga da pasta de saida os svg-*.png,
+repouso-*.png e passo-*.png de execucoes anteriores (outros arquivos ficam). Pre-requisitos ao lado do HTML: NN-slug.svg e NN-slug.diagram.json
 (o numero de passos e a soma de flows[].passos). So biblioteca padrao do Python 3.
 
 Determinismo: --force-prefers-reduced-motion (nada anima), --virtual-time-budget=1500,
@@ -19,6 +21,7 @@ e capturado uma copia temporaria com data-theme="light" na raiz.
 Saida padrao: pasta irma <stem>-capturas/.
 """
 import argparse
+import glob
 import json
 import os
 import pathlib
@@ -94,6 +97,10 @@ def main():
             return 1
     saida = os.path.abspath(a.saida) if a.saida else stem + "-capturas"
     os.makedirs(saida, exist_ok=True)
+    # Capturas antigas (ex.: passos de um modelo que tinha mais passos) nunca se misturam com as novas.
+    for padrao in ("svg-*.png", "repouso-*.png", "passo-*.png"):
+        for velho in glob.glob(os.path.join(glob.escape(saida), padrao)):
+            os.remove(velho)
     n = total_passos(modelo)
 
     gerados, falhas = [], []
@@ -113,6 +120,8 @@ def main():
             f.write(src.replace("<svg ", '<svg data-theme="light" ', 1))
         tentar(pathlib.Path(svg).as_uri(), "svg-escuro.png", "escuro")
         tentar(pathlib.Path(claro).as_uri(), "svg-claro.png", "claro")
+        for tema in ("escuro", "claro"):
+            tentar(pathlib.Path(html).as_uri(), f"repouso-{tema}.png", tema)
         for i in range(1, n + 1):
             for tema in ("escuro", "claro"):
                 tentar(f"{pathlib.Path(html).as_uri()}#passo={i}", f"passo-{i:02d}-{tema}.png", tema)
