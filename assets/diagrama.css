@@ -1,0 +1,48 @@
+/* Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
+   Origem: floorplan/assets/viewer.html (card :157-216 e arestas .trace/.flow :226-234), traduzido para SVG
+   puro (só rect/path/text). Diferença: aqui .flow das arestas com classe "corre" fica visível e animado em
+   repouso; o stepper (HTML) liga o mesmo efeito por .hl. */
+svg { font-family: var(--sans); }
+.fundo { fill: var(--bg); }
+
+/* ---------- cabeçalho, zonas, legenda ---------- */
+.titulo { fill: var(--text); font-weight: 700; font-size: 22px; }
+.subtitulo { fill: var(--text-2); font-weight: 400; font-size: 13px; }
+.zona rect { fill: rgba(var(--ink), .02); stroke: var(--hair-2); stroke-width: 1; stroke-dasharray: 6 6; }
+.zona text { fill: var(--text-3); font-weight: 600; font-size: 14px; }
+.legenda text { fill: var(--text-2); font-weight: 500; font-size: 12px; }
+.legenda .amostra-no { fill: var(--surface); stroke: var(--c); stroke-width: 1.5; }
+.legenda .amostra-aresta { fill: none; stroke: var(--c); stroke-width: 2; stroke-linecap: round; }
+.legenda .proposto .amostra-no { stroke: var(--text-3); stroke-dasharray: 4 3; }
+.rodape { fill: var(--text-3); font-weight: 500; font-size: 12px; }
+
+/* ---------- papéis ---------- */
+.papel-feliz { --c: var(--p-feliz); }
+.papel-gate, .papel-falha { --c: var(--p-gate); }
+.papel-memoria { --c: var(--p-memoria); }
+.papel-neutro, .papel-sequencia, .papel-retorno { --c: var(--p-neutro); }
+.papel-externo { --c: var(--p-externo); }
+
+/* ---------- cards ---------- */
+.no .card { fill: var(--surface); stroke: var(--hair-2); stroke-width: 1; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .55)); }
+:root[data-theme="light"] .no .card { filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .12)); }
+.no:not(.papel-neutro) .card { stroke: var(--c); stroke-opacity: .7; stroke-width: 1.5; }
+.no.papel-externo .card { fill: transparent; filter: none; }
+.no.proposto .card { stroke-dasharray: 6 5; }
+.no .nome { fill: var(--text); font-weight: 600; font-size: 15px; }
+.no .descricao { fill: var(--text-2); font-weight: 400; font-size: 13px; }
+.selo rect { fill: var(--bg); stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 3 2; }
+.selo text { fill: var(--text-2); font-weight: 600; font-size: 10.5px; }
+
+/* ---------- arestas ---------- */
+.aresta { color: var(--c); }
+.aresta .trace { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-opacity: .6; stroke-linecap: round; stroke-linejoin: round; }
+.aresta .flow { fill: none; stroke: currentColor; stroke-width: 2; stroke-dasharray: 2 10; stroke-linecap: round; opacity: 0; }
+.aresta.papel-retorno .trace, .aresta.papel-falha .trace, .aresta.proposto .trace { stroke-dasharray: 6 6; }
+.aresta.corre .trace, .aresta.hl .trace { stroke-opacity: 1; }
+.aresta.corre .flow, .aresta.hl .flow { opacity: .95; }
+.seta path { fill: var(--c); }
+.rotulo rect { fill: var(--bg); }
+.rotulo text { fill: var(--c); font-weight: 500; font-size: 12px; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
