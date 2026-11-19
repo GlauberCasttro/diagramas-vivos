@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { symlinkSync, mkdtempSync, readdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -112,4 +112,15 @@ test('slug: acentos, travessão, 60 chars sem hífen final', () => {
   const s = slug(`${'a'.repeat(59)} — fim`);
   assert.equal(s, 'a'.repeat(59));
   assert.ok(slug('x'.repeat(80)).length <= 60);
+});
+
+test('CLI roda quando chamada por symlink', () => {
+  const raiz = fileURLToPath(new URL('..', import.meta.url));
+  const link = join(tmp(), 'skill');
+  symlinkSync(raiz, link);
+  const d = tmp();
+  const r = spawnSync('node', [join(link, 'scripts', 'gerar.mjs'), MINIMO, '--saida', d], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(JSON.parse(r.stdout).arquivos.svg);
+  assert.equal(readdirSync(d).length, 3);
 });

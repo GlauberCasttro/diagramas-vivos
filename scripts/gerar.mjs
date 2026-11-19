@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // CLI: valida -> fontes -> layout -> (libavoid) -> geometria + orçamentos -> escreve SVG, HTML e cópia do modelo.
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { realpathSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { validar } from './lib/modelo.mjs';
 import { carregarFontes, cobertura } from './lib/texto.mjs';
 import { layoutFluxo } from './lib/layout-fluxo.mjs';
@@ -127,4 +127,12 @@ async function main() {
   sair({ arquivos, bytes, violacoes, avisos, roteador: args.roteador }, violacoes.length ? 2 : 0);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main().catch((e) => sair({ erro: 'falha interna', erros: [String(e?.stack ?? e)] }, 1));
+function ehPrincipal() {
+  try {
+    return realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (ehPrincipal()) main().catch((e) => sair({ erro: 'falha interna', erros: [String(e?.stack ?? e)] }, 1));
