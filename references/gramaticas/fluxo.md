@@ -6,8 +6,10 @@ no próprio SVG. Formato: `references/modelo.md`.
 ## Zonas
 - Agrupam etapas por fase. Nome no padrão `N · Título — o que acontece aqui` (ex.: "2 · Aprovação — humano
   libera; falha em produção desfaz"). Numere na ordem de leitura.
-- 2 a 4 zonas é o confortável. Registros/estado fora do pipeline vão numa zona própria, com nós `memoria`.
-- Nó sem `zona` é permitido, mas prefira sempre pertencer a uma.
+- Zonas são condicionais: use só quando há camadas ou fases reais, principalmente com `--direcao DOWN`.
+  Em fluxos de requisição em `RIGHT`, pule as zonas (veja "Zonas aumentam a largura em RIGHT" abaixo).
+  Havendo zonas, 2 a 4 é o confortável; registros/estado fora do pipeline vão numa zona própria, com nós `memoria`.
+- Nó sem `zona` é permitido; se o diagrama tem zonas, os nós costumam pertencer a uma.
 
 ## Nós
 - `nome`: curto (cabe em 2 linhas). `descricao`: uma linha de apoio (cabe em 3 linhas; passou disso, encurte).
@@ -48,7 +50,7 @@ no próprio SVG. Formato: `references/modelo.md`.
   primeiro remova zonas, depois encurte a cadeia (hubs com irmãos), só então DOWN. Confira o `viewBox` após gerar.
 - Mire numa proporção largura:altura de **1 a 3**. Os exemplos `agente` (1204 × 628) e `requisicao`
   (1846 × 796) ficam nessa faixa. Cadeias muito longas em linha (a partir de ~8 etapas, ou com muitos
-  retornos) passam de 5:1 em RIGHT (`fluxo-card` 7235 × 1114): divida em dois diagramas, agrupe em zonas, ou
+  retornos) passam de 5:1 em RIGHT (`fluxo-card` 7235 × 1114): divida em dois diagramas ou
   use `--direcao DOWN` para ler rolando.
 
 ## Limites conhecidos

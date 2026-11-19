@@ -115,7 +115,9 @@ ordem: (1) remova as zonas; (2) encurte a cadeia (hubs com irmãos em vez de nó
    - `0`: gerado, sem violações. Ainda assim leia `avisos`.
    - `1`: modelo inválido, nada foi escrito. Leia `erros` (citam o id do flow/ref), **corrija o
      `diagram.json`** e repita. Nunca invente nó ou caminho para passar na validação. (Saída que não é JSON
-     não é este caso: veja o pré-requisito.)
+     não é este caso: veja o pré-requisito.) Se `erro` for `"falha interna"`, o modelo não é o problema:
+     **não edite o `diagram.json`**; tente `--roteador libavoid` ou outra `--direcao` e reporte o stack trace
+     (em `erros`).
    - `2`: violação de geometria ou estouro de orçamento (arquivos foram escritos). **Leia `violacoes` e
      `avisos` do JSON antes de ajustar**: cada violação diz o `tipo` (`atravessa-no`, `sobreposicao`,
      `rotulo-colide`, `rotulo-cruzado`, `diagonal`, `orcamento`) e a `aresta`/`alvo`/`arquivo` envolvidos.
@@ -127,7 +129,7 @@ ordem: (1) remova as zonas; (2) encurte a cadeia (hubs com irmãos em vez de nó
    ```
    Gera PNGs (SVG, HTML em repouso e cada passo, nos temas escuro e claro) numa **pasta temporária fora do
    projeto** (`<tmp>/diagramas-vivos-capturas/NN-slug/`); os caminhos saem no stdout, e `--saida <dir>`
-   escolhe outro lugar. Capturas antigas da pasta são apagadas antes. **Olhe as imagens** (Read): texto
+   escolhe outro lugar. Capturas antigas da pasta são apagadas antes (`--saida <dir>` apaga os PNGs `svg-*`, `repouso-*` e `passo-*` desse diretório: use uma pasta dedicada). **Olhe as imagens** (Read): texto
    vazando de card, seta sobre rótulo, nota de passo cobrindo o foco. Problema visível volta ao passo 3.
    A captura `svg-*.png` é só a janela superior esquerda; use as de passo para o detalhe.
    **Se o `render_check.py` sair com código 1** (ex.: `Chrome/Chromium nao encontrado`, captura não gerada),

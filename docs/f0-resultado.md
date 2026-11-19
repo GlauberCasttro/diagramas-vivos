@@ -14,7 +14,7 @@ o roteador ELK, nas duas direções, e todos os arquivos ficam dentro do orçame
 necessário: também dá zero violações em todos os casos, então "ELK perde" não acontece.
 
 **Pendente:** "visual aprovado pelo dono ao lado do floorplan". Não é decisão deste relatório. As saídas para essa
-revisão estão em `exemplos/<nome>/01-*.html` (abrir no navegador) e os achados visuais abaixo são o que o dono
+revisão (na F0, versionadas em `exemplos/<nome>/01-*.html`; hoje geradas localmente, veja o README) e os achados visuais abaixo são o que o dono
 deve olhar primeiro.
 
 ## Os 3 fixtures
@@ -118,7 +118,10 @@ O que foi olhado e está limpo: nenhum texto vaza de card (máx. 3 linhas de des
 fixtures), nenhuma seta sobre rótulo de aresta, nota de passo nunca cobre o nó em foco, tema claro e escuro
 legíveis, os retornos em vermelho tracejado e o caminho feliz animado só no primeiro flow.
 
-## Como reproduzir
+## Como reproduzir (procedimento histórico da F0)
+
+Procedimento da F0, quando as saídas eram versionadas em `exemplos/<nome>/`. No comportamento atual as saídas
+não são commitadas e as capturas ficam em `<tmp>/diagramas-vivos-capturas/<stem>/` (veja o README).
 
 ```
 node scripts/gerar.mjs exemplos/deploy/diagram.json --saida exemplos/deploy --nome 01-deploy-com-aprovacao-manual --direcao DOWN

@@ -33,10 +33,10 @@ Por padrão o layout é horizontal (`RIGHT`); `--direcao DOWN` para cadeias long
 As saídas dos exemplos não são versionadas (só `exemplos/*/diagram.json`). Para gerar e abrir:
 
 ```
-node scripts/gerar.mjs exemplos/requisicao/diagram.json --saida /tmp/dv-exemplos
-node scripts/gerar.mjs exemplos/agente/diagram.json --saida /tmp/dv-exemplos
-open /tmp/dv-exemplos/01-requisicao-de-pedido.svg   # ou o .html
-python3 scripts/render_check.py /tmp/dv-exemplos/01-requisicao-de-pedido.html   # capturas em <tmp>/diagramas-vivos-capturas/
+node scripts/gerar.mjs exemplos/requisicao/diagram.json --saida /tmp/dv-exemplos --nome 01-requisicao
+node scripts/gerar.mjs exemplos/agente/diagram.json --saida /tmp/dv-exemplos --nome 02-agente
+open /tmp/dv-exemplos/01-requisicao.svg   # ou o .html
+python3 scripts/render_check.py /tmp/dv-exemplos/01-requisicao.html   # capturas em <tmp>/diagramas-vivos-capturas/
 ```
 
 Exemplos: `agente`, `requisicao` (F0.1, com ida e volta) e `deploy`, `fluxo-card`, `skill` (F0, cadeias longas;
