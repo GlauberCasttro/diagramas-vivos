@@ -86,3 +86,34 @@ test('sentido em ref de nó é erro; sentido inválido é erro', () => {
   const e = base(); e.flows[0].passos[0].ref = 'a-b'; e.flows[0].passos[0].sentido = 'x';
   temErro(e, 'flows[f1].passos[0].sentido');
 });
+
+test('icone, selo e tipo válidos', () => {
+  const d = base();
+  for (const icone of ['pessoa', 'servico', 'ferramenta', 'banco', 'gate', 'externo', 'fila', 'documento', 'agente']) {
+    d.nos[0].icone = icone; assert.deepEqual(validar(d).erros, []);
+  }
+  d.nos[0].selo = 'MCP'; d.nos[1].selo = 'x'.repeat(12);
+  for (const tipo of ['chamada', 'rpc', 'dados', 'evento', 'fila']) {
+    d.arestas[0].tipo = tipo; assert.deepEqual(validar(d).erros, []);
+  }
+});
+test('icone inválido é erro com o caminho', () => {
+  const d = base(); d.nos[0].icone = 'robo'; temErro(d, 'nos[a].icone: robo');
+});
+test('selo vazio, longo demais ou não texto é erro', () => {
+  const d = base(); d.nos[0].selo = 'x'.repeat(13); temErro(d, 'nos[a].selo');
+  d.nos[0].selo = ''; temErro(d, 'nos[a].selo');
+  d.nos[0].selo = 3; temErro(d, 'nos[a].selo');
+});
+test('tipo de aresta inválido é erro com o caminho', () => {
+  const d = base(); d.arestas[0].tipo = 'http'; temErro(d, 'arestas[a-b].tipo: http');
+});
+test('fixture requisicao é válida', () => {
+  const d = JSON.parse(readFileSync(new URL('./fixtures/requisicao.json', import.meta.url), 'utf8'));
+  assert.deepEqual(validar(d).erros, []);
+  assert.equal(d.nos.length, 11);
+  assert.equal(d.arestas.filter((a) => a.resposta).length, 4);
+});
+test('id com "~" é reservado (a volta vive no Layout como <id>~volta)', () => {
+  const d = base(); d.arestas[0].id = 'a-b~volta'; temErro(d, 'reservado');
+});

@@ -2,6 +2,9 @@
 export const PAPEIS_NO = ['feliz', 'gate', 'memoria', 'neutro', 'externo'];
 export const PAPEIS_ARESTA = ['sequencia', 'feliz', 'retorno', 'falha'];
 export const NIVEIS = ['informado', 'proposto'];
+export const ICONES = ['pessoa', 'servico', 'ferramenta', 'banco', 'gate', 'externo', 'fila', 'documento', 'agente'];
+export const TIPOS_ARESTA = ['chamada', 'rpc', 'dados', 'evento', 'fila'];
+export const SELO_MAX = 12;
 
 const str = (v) => typeof v === 'string' && v.length > 0;
 const obj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -20,6 +23,7 @@ export function validar(d) {
   const usar = (id) => {
     if (!str(id)) return;
     if (ids.has(id)) erros.push(`id duplicado: ${id}`);
+    if (id.includes('~')) erros.push(`id ${id}: "~" é reservado (<id>~volta é a volta no Layout)`);
     ids.add(id);
   };
   const nivel = (item, rot) => {
@@ -51,6 +55,10 @@ export function validar(d) {
     if (!str(n.nome)) erros.push(`${r}.nome: obrigatório`);
     if (!PAPEIS_NO.includes(n.papel)) erros.push(`${r}.papel: ${n.papel} (aceita ${PAPEIS_NO.join('|')})`);
     if (n.zona !== undefined && !zonaIds.has(n.zona)) erros.push(`${r}.zona: ${n.zona}`);
+    if (n.icone !== undefined && !ICONES.includes(n.icone))
+      erros.push(`${r}.icone: ${n.icone} (aceita ${ICONES.join('|')})`);
+    if (n.selo !== undefined && (!str(n.selo) || n.selo.length > SELO_MAX))
+      erros.push(`${r}.selo: texto de 1 a ${SELO_MAX} caracteres`);
     nivel(n, r);
   });
 
@@ -68,6 +76,8 @@ export function validar(d) {
     if (!PAPEIS_ARESTA.includes(a.papel)) erros.push(`${r}.papel: ${a.papel} (aceita ${PAPEIS_ARESTA.join('|')})`);
     if (a.resposta !== undefined && (!str(a.resposta) || a.resposta.length > 40))
       erros.push(`${r}.resposta: texto de 1 a 40 caracteres`);
+    if (a.tipo !== undefined && !TIPOS_ARESTA.includes(a.tipo))
+      erros.push(`${r}.tipo: ${a.tipo} (aceita ${TIPOS_ARESTA.join('|')})`);
     nivel(a, r);
   });
   const arestaPorId = new Map(arestas.filter(obj).map((a) => [a.id, a]));

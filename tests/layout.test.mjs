@@ -35,7 +35,7 @@ test('minimo: 2 nós sem sobreposição, aresta dentro da área', async () => {
   assert.ok(L.arestas[0].pontos.length >= 2);
   for (const p of L.arestas[0].pontos) assert.ok(dentro(p, L), `${p} fora`);
   for (const n of L.nos) {
-    assert.equal(n.w, 260);
+    assert.equal(n.w, 300);
     assert.ok(n.h >= 72);
     assert.ok(n.y >= L.cabecalho.y + L.cabecalho.altura, 'nó invade o cabeçalho');
     assert.ok(n.y + n.h <= L.legenda.y, 'nó invade a legenda');
@@ -160,7 +160,7 @@ for (const direcao of ['RIGHT', 'DOWN'])
 test('zona com nome longo e um card só fica larga o bastante para o nome', async () => {
   const { medir, ESTILO } = await import('../scripts/lib/texto.mjs');
   const d = ler('minimo.json');
-  const nome = 'Zona com um nome bem comprido — mais largo que um card de 260 px sozinho';
+  const nome = 'Zona com um nome bem comprido — mais largo que um card de 300 px sozinho, de verdade';
   d.zonas = [{ id: 'z', nome }];
   d.nos[0].zona = 'z';
   for (const direcao of ['RIGHT', 'DOWN']) {
@@ -173,3 +173,56 @@ test('zona com nome longo e um card só fica larga o bastante para o nome', asyn
     assert.deepEqual(verificarGeometria(L), []);
   }
 });
+
+// Volta como aresta própria: `<id>~volta`, do card `para` ao `de`, roteada pelo ELK, rótulo = resposta.
+for (const direcao of ['RIGHT', 'DOWN'])
+  test(`requisicao ${direcao}: uma ~volta por resposta, pontas nas bordas, geometria limpa`, async () => {
+    const d = ler('requisicao.json');
+    const L = await layoutFluxo(d, fontes, { direcao });
+    const N = new Map(L.nos.map((n) => [n.id, n]));
+    const comResposta = d.arestas.filter((a) => a.resposta);
+    const voltas = L.arestas.filter((a) => a.id.endsWith('~volta'));
+    assert.equal(voltas.length, comResposta.length);
+    assert.equal(L.arestas.length, d.arestas.length + comResposta.length);
+    for (const a of comResposta) {
+      const v = L.arestas.find((x) => x.id === `${a.id}~volta`);
+      assert.ok(v, `${a.id}~volta ausente`);
+      assert.ok(v.pontos.length >= 2);
+      assert.ok(naBorda(v.pontos[0], N.get(a.para)), `${v.id}: início ${v.pontos[0]} fora da borda de ${a.para}`);
+      assert.ok(naBorda(v.pontos.at(-1), N.get(a.de)), `${v.id}: fim ${v.pontos.at(-1)} fora da borda de ${a.de}`);
+      assert.equal(v.rotulo.linhas.join(' '), a.resposta);
+    }
+    ortogonal(L);
+    assert.deepEqual(verificarGeometria(L), []);
+    for (const a of L.arestas) for (const p of a.pontos) assert.ok(dentro(p, L), `${a.id} ${p} fora`);
+  });
+
+test('requisicao RIGHT: proporção compacta entre 1:1 e 3:1', async () => {
+  const L = await layoutFluxo(ler('requisicao.json'), fontes, { direcao: 'RIGHT' });
+  const r = L.largura / L.altura;
+  assert.ok(r >= 1 && r <= 3, `proporção ${L.largura}x${L.altura} = ${r.toFixed(2)}`);
+});
+
+test('card de 300 px e 120 px entre colunas (referência)', async () => {
+  const { CARD } = await import('../scripts/lib/layout-fluxo.mjs');
+  assert.equal(CARD.largura, 300);
+  const L = await layoutFluxo(ler('minimo.json'), fontes, { direcao: 'RIGHT' });
+  const [a, b] = [...L.nos].sort((p, q) => p.x - q.x);
+  assert.equal(b.x - (a.x + a.w), 120);
+});
+
+for (const direcao of ['RIGHT', 'DOWN'])
+  test(`retorno com resposta ${direcao}: a volta sai do para e chega no de (inclusive em aresta de retorno)`, async () => {
+    const d = ler('retorno.json');
+    d.arestas.find((a) => a.id === 'gate-build').resposta = 'corrigido';
+    d.arestas.find((a) => a.id === 'build-testes').resposta = 'pacote';
+    const L = await layoutFluxo(d, fontes, { direcao });
+    const N = new Map(L.nos.map((n) => [n.id, n]));
+    for (const a of d.arestas.filter((x) => x.resposta)) {
+      const v = L.arestas.find((x) => x.id === `${a.id}~volta`);
+      assert.ok(naBorda(v.pontos[0], N.get(a.para)), `${v.id}: início fora de ${a.para}`);
+      assert.ok(naBorda(v.pontos.at(-1), N.get(a.de)), `${v.id}: fim fora de ${a.de}`);
+    }
+    ortogonal(L);
+    assert.deepEqual(verificarGeometria(L), []);
+  });

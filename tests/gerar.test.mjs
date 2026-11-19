@@ -125,18 +125,18 @@ test('CLI roda quando chamada por symlink', () => {
   assert.equal(readdirSync(d).length, 3);
 });
 
-test('--direcao: padrão DOWN; RIGHT muda o layout e é informada; inválida dá exit 1', () => {
+test('--direcao: padrão RIGHT; DOWN muda o layout e é informada; inválida dá exit 1', () => {
   const vb = (p) => /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(readFileSync(p, 'utf8')).slice(1).map(Number);
   const d = tmp();
-  const r1 = rodar([MINIMO, '--saida', d, '--nome', '01-right', '--direcao', 'RIGHT']);
-  const r2 = rodar([MINIMO, '--saida', d, '--nome', '02-padrao']);
+  const r1 = rodar([MINIMO, '--saida', d, '--nome', '01-padrao']);
+  const r2 = rodar([MINIMO, '--saida', d, '--nome', '02-down', '--direcao', 'DOWN']);
   assert.equal(r1.status, 0, r1.stderr);
   assert.equal(r2.status, 0, r2.stderr);
   assert.equal(JSON.parse(r1.stdout).direcao, 'RIGHT');
   assert.equal(JSON.parse(r2.stdout).direcao, 'DOWN');
   const [w1, h1] = vb(JSON.parse(r1.stdout).arquivos.svg);
   const [w2, h2] = vb(JSON.parse(r2.stdout).arquivos.svg);
-  assert.ok(w2 / h2 < w1 / h1, `padrão (DOWN) deveria ser mais estreito: ${w1}x${h1} vs ${w2}x${h2}`);
+  assert.ok(w2 / h2 < w1 / h1, `DOWN deveria ser mais estreito que o padrão (RIGHT): ${w1}x${h1} vs ${w2}x${h2}`);
   const d2 = tmp();
   const r3 = rodar([MINIMO, '--saida', d2, '--direcao', 'LEFT']);
   assert.equal(r3.status, 1);

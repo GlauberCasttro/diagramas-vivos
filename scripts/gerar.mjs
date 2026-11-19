@@ -23,7 +23,7 @@ function sair(obj, codigo) {
 }
 
 function lerArgs(argv) {
-  const a = { entrada: null, saida: null, roteador: 'elk', nome: null, direcao: 'DOWN' };
+  const a = { entrada: null, saida: null, roteador: 'elk', nome: null, direcao: 'RIGHT' };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
     if (v === '--saida') a.saida = argv[++i];
@@ -70,8 +70,8 @@ export function avaliar(layout, bytes, limites = {}) {
 function textos(d) {
   const t = [d.titulo, d.subtitulo];
   for (const z of d.zonas ?? []) t.push(z.nome);
-  for (const n of d.nos ?? []) t.push(n.nome, n.descricao);
-  for (const e of d.arestas ?? []) t.push(e.rotulo);
+  for (const n of d.nos ?? []) t.push(n.nome, n.descricao, n.selo);
+  for (const e of d.arestas ?? []) t.push(e.rotulo, e.resposta);
   for (const f of d.flows ?? []) {
     t.push(f.titulo);
     for (const p of f.passos ?? []) t.push(p.nota);
@@ -82,7 +82,7 @@ function textos(d) {
 async function main() {
   const args = lerArgs(process.argv.slice(2));
   if (!args.entrada || !args.saida) {
-    const msg = 'uso: gerar.mjs <diagram.json> --saida <dir> [--roteador elk|libavoid] [--direcao DOWN|RIGHT] [--nome NN-slug]';
+    const msg = 'uso: gerar.mjs <diagram.json> --saida <dir> [--roteador elk|libavoid] [--direcao RIGHT|DOWN] [--nome NN-slug]';
     sair({ erro: msg, erros: [msg] }, 1);
   }
   if (!['elk', 'libavoid'].includes(args.roteador)) {

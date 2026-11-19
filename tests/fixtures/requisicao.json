@@ -1,0 +1,51 @@
+{
+  "versao": 1,
+  "tipo": 1,
+  "gramatica": "fluxo",
+  "titulo": "Requisição de pedido",
+  "subtitulo": "Do usuário ao banco, com as respostas voltando pela mesma cadeia",
+  "zonas": [
+    { "id": "cliente", "nome": "Cliente" },
+    { "id": "borda", "nome": "Borda" },
+    { "id": "servicos", "nome": "Serviços" },
+    { "id": "dados", "nome": "Dados e integrações" }
+  ],
+  "nos": [
+    { "id": "usuario", "nome": "Usuário", "descricao": "Faz o pedido pelo aplicativo.", "papel": "neutro", "icone": "pessoa", "zona": "cliente" },
+    { "id": "parceiro", "nome": "Parceiro", "descricao": "Integra pela API pública.", "papel": "externo", "icone": "externo", "zona": "cliente" },
+    { "id": "gateway", "nome": "API Gateway", "descricao": "Recebe a chamada e encaminha.", "papel": "feliz", "icone": "servico", "zona": "borda" },
+    { "id": "auth", "nome": "Autenticação", "descricao": "Confere o token de quem chama.", "papel": "gate", "icone": "gate", "zona": "servicos" },
+    { "id": "pedidos", "nome": "Pedidos", "descricao": "Cria o pedido e orquestra os passos.", "papel": "feliz", "icone": "servico", "zona": "servicos" },
+    { "id": "catalogo", "nome": "Catálogo", "descricao": "Preço e disponibilidade dos itens.", "papel": "neutro", "icone": "servico", "zona": "servicos" },
+    { "id": "estoque", "nome": "Estoque", "descricao": "Saldo de cada item.", "papel": "neutro", "icone": "ferramenta", "zona": "servicos" },
+    { "id": "banco", "nome": "Banco de pedidos", "descricao": "Guarda o pedido e o estado.", "papel": "memoria", "icone": "banco", "zona": "dados" },
+    { "id": "cache", "nome": "Cache", "descricao": "Preços recentes do catálogo.", "papel": "memoria", "icone": "documento", "zona": "dados" },
+    { "id": "fila", "nome": "Fila de eventos", "descricao": "Publica pedido criado.", "papel": "neutro", "icone": "fila", "zona": "dados" },
+    { "id": "pagamento", "nome": "Pagamento", "descricao": "Provedor externo de cobrança.", "papel": "externo", "icone": "agente", "selo": "PSP", "zona": "dados" }
+  ],
+  "arestas": [
+    { "id": "usuario-gateway", "de": "usuario", "para": "gateway", "papel": "feliz", "tipo": "chamada", "rotulo": "POST /pedidos", "resposta": "201 criado" },
+    { "id": "parceiro-gateway", "de": "parceiro", "para": "gateway", "papel": "sequencia", "tipo": "chamada" },
+    { "id": "gateway-auth", "de": "gateway", "para": "auth", "papel": "sequencia", "tipo": "rpc", "rotulo": "valida", "resposta": "token ok" },
+    { "id": "gateway-pedidos", "de": "gateway", "para": "pedidos", "papel": "feliz", "tipo": "chamada", "resposta": "pedido criado" },
+    { "id": "gateway-catalogo", "de": "gateway", "para": "catalogo", "papel": "sequencia", "tipo": "chamada" },
+    { "id": "gateway-estoque", "de": "gateway", "para": "estoque", "papel": "sequencia", "tipo": "rpc" },
+    { "id": "pedidos-banco", "de": "pedidos", "para": "banco", "papel": "feliz", "tipo": "dados", "rotulo": "grava", "resposta": "id do pedido" },
+    { "id": "pedidos-fila", "de": "pedidos", "para": "fila", "papel": "sequencia", "tipo": "evento" },
+    { "id": "pedidos-pagamento", "de": "pedidos", "para": "pagamento", "papel": "sequencia", "tipo": "chamada", "nivel": "proposto" },
+    { "id": "catalogo-cache", "de": "catalogo", "para": "cache", "papel": "sequencia", "tipo": "dados" },
+    { "id": "estoque-fila", "de": "estoque", "para": "fila", "papel": "sequencia", "tipo": "fila" }
+  ],
+  "flows": [
+    { "id": "f1", "titulo": "Criar pedido", "passos": [
+      { "ref": "usuario-gateway", "nota": "O usuário envia o pedido." },
+      { "ref": "gateway-auth", "nota": "O gateway valida o token." },
+      { "ref": "gateway-auth", "sentido": "volta", "nota": "Token aceito." },
+      { "ref": "gateway-pedidos", "nota": "Encaminha para pedidos." },
+      { "ref": "pedidos-banco", "nota": "Grava o pedido." },
+      { "ref": "pedidos-banco", "sentido": "volta", "nota": "O banco devolve o id." },
+      { "ref": "gateway-pedidos", "sentido": "volta", "nota": "Pedido criado." },
+      { "ref": "usuario-gateway", "sentido": "volta", "nota": "O usuário recebe 201." }
+    ] }
+  ]
+}
