@@ -153,3 +153,18 @@ test('id do modelo ausente no layout: erro que cita o id', async () => {
   const semAresta = { ...L, arestas: L.arestas.filter((a) => a.id !== 'gate-build') };
   assert.throws(() => emitirSvg(d, semAresta, fontes), /gate-build/);
 });
+
+// Em DOWN as arestas entram na zona pela faixa do nome: o nome é desenhado por cima das arestas,
+// com halo da cor do fundo, para nenhuma seta riscar o texto.
+test('nome da zona vem depois das arestas e tem halo do fundo', async () => {
+  const d = ler('retorno.json');
+  const svg = await gerar(d);
+  const iArestas = svg.indexOf('<g class="arestas">');
+  const iNomes = svg.indexOf('<g class="nomes-zona">');
+  const iNos = svg.indexOf('<g class="nos">');
+  assert.ok(iArestas >= 0 && iNomes > iArestas && iNos > iNomes, 'ordem zonas → arestas → nomes-zona → nós');
+  for (const z of d.zonas) assert.ok(svg.includes(`data-zona="${z.id}"`) && svg.includes(`>${z.nome}</text>`), z.id);
+  const zonas = svg.slice(svg.indexOf('<g class="zonas">'), iArestas);
+  assert.equal(conta(zonas, '<text'), 0, 'texto de zona fora do grupo de nomes');
+  assert.match(svg, /\.nomes-zona text \{[^}]*paint-order: stroke[^}]*stroke: var\(--bg\)/);
+});

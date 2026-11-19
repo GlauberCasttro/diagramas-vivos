@@ -1,0 +1,58 @@
+{
+  "versao": 1,
+  "tipo": 1,
+  "gramatica": "fluxo",
+  "titulo": "Como a skill gera um diagrama",
+  "subtitulo": "Planejar, rotear com verificação por script e entregar só depois de olhar a imagem",
+  "zonas": [
+    { "id": "planejar", "nome": "1 · Planejar — entender o pedido antes de desenhar" },
+    { "id": "rotear", "nome": "2 · Rotear — setas calculadas e verificadas por script" },
+    { "id": "entregar", "nome": "3 · Entregar — montar, renderizar e olhar" },
+    { "id": "referencias", "nome": "4 · Referências — o contrato visual que não muda" }
+  ],
+  "nos": [
+    { "id": "pedido", "nome": "Pedido", "descricao": "qualquer assunto", "papel": "neutro", "zona": "planejar" },
+    { "id": "zonas", "nome": "Zonas narrativas", "descricao": "2–4 atos numerados", "papel": "feliz", "zona": "planejar" },
+    { "id": "grade", "nome": "Grade de caixas", "descricao": "cabe em x ≤ 956", "papel": "neutro", "zona": "planejar" },
+    { "id": "fixture", "nome": "Fixture JSON", "descricao": "nós e arestas", "papel": "neutro", "zona": "rotear" },
+    { "id": "roteador", "nome": "Roteador", "descricao": "libavoid · cotovelos 90°", "papel": "neutro", "zona": "rotear" },
+    { "id": "verificador", "nome": "Verificador", "descricao": "0 violações?", "papel": "gate", "zona": "rotear" },
+    { "id": "emite", "nome": "Emite os caminhos", "descricao": "path com classe e marker", "papel": "neutro", "zona": "entregar" },
+    { "id": "montado", "nome": "SVG montado", "descricao": "template + legenda", "papel": "neutro", "zona": "entregar" },
+    { "id": "renderiza", "nome": "Renderiza", "descricao": "imagem 2x por zona", "papel": "neutro", "zona": "entregar" },
+    { "id": "inspecao", "nome": "Inspeção visual", "descricao": "colisão de texto?", "papel": "gate", "zona": "entregar" },
+    { "id": "arquivo", "nome": "Arquivo .svg", "descricao": "entregue ao usuário", "papel": "feliz", "zona": "entregar" },
+    { "id": "style", "nome": "style-spec.md", "descricao": "classes, paleta e componentes; o que não se inventa", "papel": "memoria", "zona": "referencias" },
+    { "id": "template", "nome": "template.svg", "descricao": "esqueleto com zonas e legenda; ponto de partida", "papel": "memoria", "zona": "referencias" },
+    { "id": "exemplos", "nome": "Exemplos + fixtures", "descricao": "deploy e ciclo de card; prova de que funciona", "papel": "memoria", "zona": "referencias" }
+  ],
+  "arestas": [
+    { "id": "pedido-zonas", "de": "pedido", "para": "zonas", "papel": "sequencia" },
+    { "id": "zonas-grade", "de": "zonas", "para": "grade", "papel": "feliz" },
+    { "id": "grade-fixture", "de": "grade", "para": "fixture", "papel": "sequencia" },
+    { "id": "fixture-roteador", "de": "fixture", "para": "roteador", "papel": "sequencia" },
+    { "id": "roteador-verificador", "de": "roteador", "para": "verificador", "papel": "feliz" },
+    { "id": "verificador-fixture", "de": "verificador", "para": "fixture", "papel": "retorno", "rotulo": "violação → ajusta lado, offset ou via" },
+    { "id": "verificador-emite", "de": "verificador", "para": "emite", "papel": "feliz" },
+    { "id": "emite-montado", "de": "emite", "para": "montado", "papel": "sequencia" },
+    { "id": "montado-renderiza", "de": "montado", "para": "renderiza", "papel": "sequencia" },
+    { "id": "renderiza-inspecao", "de": "renderiza", "para": "inspecao", "papel": "sequencia" },
+    { "id": "inspecao-arquivo", "de": "inspecao", "para": "arquivo", "papel": "feliz" },
+    { "id": "inspecao-montado", "de": "inspecao", "para": "montado", "papel": "retorno", "rotulo": "texto colidido → corrige e renderiza de novo" }
+  ],
+  "flows": [
+    { "id": "caminho", "titulo": "Do pedido ao arquivo", "passos": [
+      { "ref": "pedido", "nota": "Chega um pedido de diagrama, sobre qualquer assunto." },
+      { "ref": "zonas", "nota": "O assunto vira de 2 a 4 atos numerados." },
+      { "ref": "zonas-grade", "nota": "Os atos são distribuídos numa grade de caixas." },
+      { "ref": "fixture", "nota": "Nós e arestas vão para um fixture JSON." },
+      { "ref": "roteador", "nota": "O libavoid roteia as setas com cotovelos de 90°." },
+      { "ref": "roteador-verificador", "nota": "As rotas seguem para o verificador." },
+      { "ref": "verificador", "nota": "Zero violações libera; qualquer violação volta para ajuste." },
+      { "ref": "verificador-emite", "nota": "Com rotas limpas, os caminhos são emitidos." },
+      { "ref": "inspecao", "nota": "O SVG é montado, renderizado e inspecionado; colisão de texto volta para correção." },
+      { "ref": "inspecao-arquivo", "nota": "Sem colisões, o arquivo é aprovado." },
+      { "ref": "arquivo", "nota": "O .svg é entregue ao usuário." }
+    ] }
+  ]
+}

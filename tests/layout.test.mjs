@@ -156,3 +156,20 @@ for (const direcao of ['RIGHT', 'DOWN'])
     const laco = L.arestas.find((a) => a.id === 'tenta-tenta');
     assert.ok(laco.pontos.length >= 4, `laço com ${laco.pontos.length} pontos`);
   });
+
+test('zona com nome longo e um card só fica larga o bastante para o nome', async () => {
+  const { medir, ESTILO } = await import('../scripts/lib/texto.mjs');
+  const d = ler('minimo.json');
+  const nome = 'Zona com um nome bem comprido — mais largo que um card de 260 px sozinho';
+  d.zonas = [{ id: 'z', nome }];
+  d.nos[0].zona = 'z';
+  for (const direcao of ['RIGHT', 'DOWN']) {
+    const L = await layoutFluxo(d, fontes, { direcao });
+    const z = L.zonas.find((q) => q.id === 'z');
+    // svg.mjs desenha o nome em x = z.x + 24; precisa terminar antes da borda direita (24 de folga)
+    assert.ok(24 + medir(fontes, nome, ESTILO.zona) + 24 <= z.w, `${direcao}: zona ${z.w} px para nome de ${medir(fontes, nome, ESTILO.zona)} px`);
+    const card = L.nos.find((n) => n.id === d.nos[0].id);
+    assert.ok(z.h <= card.h + 44 + 24 + 1, `${direcao}: zona com altura inflada (${z.h} para card de ${card.h})`);
+    assert.deepEqual(verificarGeometria(L), []);
+  }
+});

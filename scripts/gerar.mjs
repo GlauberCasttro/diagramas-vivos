@@ -23,12 +23,13 @@ function sair(obj, codigo) {
 }
 
 function lerArgs(argv) {
-  const a = { entrada: null, saida: null, roteador: 'elk', nome: null };
+  const a = { entrada: null, saida: null, roteador: 'elk', nome: null, direcao: 'RIGHT' };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
     if (v === '--saida') a.saida = argv[++i];
     else if (v === '--roteador') a.roteador = argv[++i];
     else if (v === '--nome') a.nome = argv[++i];
+    else if (v === '--direcao') a.direcao = argv[++i];
     else if (!v.startsWith('--') && !a.entrada) a.entrada = v;
     else sair({ erro: `argumento desconhecido: ${v}`, erros: [`argumento desconhecido: ${v}`] }, 1);
   }
@@ -81,11 +82,14 @@ function textos(d) {
 async function main() {
   const args = lerArgs(process.argv.slice(2));
   if (!args.entrada || !args.saida) {
-    const msg = 'uso: gerar.mjs <diagram.json> --saida <dir> [--roteador elk|libavoid] [--nome NN-slug]';
+    const msg = 'uso: gerar.mjs <diagram.json> --saida <dir> [--roteador elk|libavoid] [--direcao RIGHT|DOWN] [--nome NN-slug]';
     sair({ erro: msg, erros: [msg] }, 1);
   }
   if (!['elk', 'libavoid'].includes(args.roteador)) {
     sair({ erro: 'roteador inválido', erros: [`roteador inválido: ${args.roteador}`] }, 1);
+  }
+  if (!['RIGHT', 'DOWN'].includes(args.direcao)) {
+    sair({ erro: 'direção inválida', erros: [`direção inválida: ${args.direcao}`] }, 1);
   }
   if (args.nome && /[\\/]|\.\./.test(args.nome)) {
     sair({ erro: '--nome inválido', erros: [`--nome não pode conter / \\ ou ..: ${args.nome}`] }, 1);
@@ -100,7 +104,7 @@ async function main() {
   if (!v.ok) sair({ erro: 'modelo inválido', erros: v.erros }, 1);
 
   const fontes = await carregarFontes(DIR_FONTES);
-  let layout = await layoutFluxo(diagrama, fontes);
+  let layout = await layoutFluxo(diagrama, fontes, { direcao: args.direcao });
   if (args.roteador === 'libavoid') layout = await rotearLibavoid(layout, diagrama);
 
   const avisos = cobertura(fontes, textos(diagrama));
@@ -124,7 +128,7 @@ async function main() {
   writeFileSync(arquivos.svg, svg);
   writeFileSync(arquivos.html, html);
   writeFileSync(arquivos.modelo, `${JSON.stringify(diagrama, null, 2)}\n`);
-  sair({ arquivos, bytes, violacoes, avisos, roteador: args.roteador }, violacoes.length ? 2 : 0);
+  sair({ arquivos, bytes, violacoes, avisos, roteador: args.roteador, direcao: args.direcao }, violacoes.length ? 2 : 0);
 }
 
 function ehPrincipal() {

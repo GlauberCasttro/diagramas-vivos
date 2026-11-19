@@ -28,6 +28,8 @@ export function alturaCard(linhasNome, linhasDescricao) {
   );
 }
 
+const minimoZona = (w, direcao) => (direcao === 'DOWN' ? `(0,${w})` : `(${w},0)`);
+
 export async function layoutFluxo(diagrama, fontes, opcoes = {}) {
   const direcao = opcoes.direcao || 'RIGHT';
   const conteudo = CARD.largura - 2 * CARD.padX;
@@ -44,6 +46,11 @@ export async function layoutFluxo(diagrama, fontes, opcoes = {}) {
     id: z.id,
     layoutOptions: {
       'elk.padding': `[top=${ZONA_PAD.topo},left=${ZONA_PAD.lado},bottom=${ZONA_PAD.base},right=${ZONA_PAD.lado}]`,
+      // O nome da zona é uma linha só (svg.mjs, x = zona.x + 24): a zona nunca fica mais estreita que ele.
+      // Com INCLUDE_CHILDREN o ELK 0.9.3 aplica o mínimo de nó composto já transposto em DOWN
+      // ((w,h) vira altura,largura), por isso o par é invertido nessa direção.
+      'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+      'elk.nodeSize.minimum': minimoZona(Math.ceil(2 * ZONA_PAD.lado + medir(fontes, z.nome, ESTILO.zona)), direcao),
       ...ESPACOS,
     },
     children: diagrama.nos.filter((n) => n.zona === z.id).map(elkNo),

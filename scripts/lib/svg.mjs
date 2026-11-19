@@ -129,7 +129,13 @@ function emitirAresta(aresta, geo, corre, fontes) {
 }
 
 function emitirZona(z) {
-  return `<g class="zona" data-id="${esc(z.id)}"><rect x="${n1(z.x)}" y="${n1(z.y)}" width="${n1(z.w)}" height="${n1(z.h)}" rx="24"/><text x="${n1(z.x + 24)}" y="${n1(z.y + 28)}">${esc(z.nome)}</text></g>\n`;
+  return `<g class="zona" data-id="${esc(z.id)}"><rect x="${n1(z.x)}" y="${n1(z.y)}" width="${n1(z.w)}" height="${n1(z.h)}" rx="24"/></g>\n`;
+}
+
+// Nome da zona fica num grupo acima das arestas (com halo do fundo, ver diagrama.css): em DOWN as
+// arestas entram na zona pela faixa do nome e não podem riscar o texto.
+function emitirNomeZona(z) {
+  return `<text data-zona="${esc(z.id)}" x="${n1(z.x + 24)}" y="${n1(z.y + 28)}">${esc(z.nome)}</text>\n`;
 }
 
 // Itens da legenda: só papéis/estilos presentes no diagrama, na ordem canônica.
@@ -219,6 +225,7 @@ export function emitirSvg(diagrama, layout, fontes, opcoes = {}) {
   const corre = caminhoFeliz(diagrama);
 
   const zonas = (layout.zonas || []).map(emitirZona).join('');
+  const nomesZona = (layout.zonas || []).map(emitirNomeZona).join('');
   const arestas = diagrama.arestas
     .map((a) => emitirAresta(a, porIdAresta.get(a.id), corre.has(a.id), fontes))
     .join('');
@@ -242,6 +249,7 @@ export function emitirSvg(diagrama, layout, fontes, opcoes = {}) {
     `<g class="cabecalho">${cabecalho}</g>\n` +
     `<g class="zonas">\n${zonas}</g>\n` +
     `<g class="arestas">\n${arestas}</g>\n` +
+    `<g class="nomes-zona">\n${nomesZona}</g>\n` +
     `<g class="nos">\n${nos}</g>\n` +
     legenda +
     `<text class="rodape" x="${largura - MARGEM}" y="${yRodape}" text-anchor="end">${esc(rodape)}</text>\n` +
