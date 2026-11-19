@@ -1,0 +1,14 @@
+{
+  "versao": 1,
+  "tipo": 1,
+  "gramatica": "fluxo",
+  "titulo": "Mínimo",
+  "nos": [
+    { "id": "a", "nome": "A", "papel": "neutro" },
+    { "id": "b", "nome": "B", "papel": "neutro" }
+  ],
+  "arestas": [{ "id": "a-b", "de": "a", "para": "b", "papel": "feliz" }],
+  "flows": [
+    { "id": "f1", "titulo": "Fluxo", "passos": [{ "ref": "a", "nota": "inicio" }, { "ref": "a-b", "nota": "segue" }] }
+  ]
+}
