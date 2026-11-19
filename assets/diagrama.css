@@ -1,8 +1,10 @@
 /* Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
    Origem: floorplan/assets/viewer.html (card :157-216 e arestas .trace/.flow :226-234), traduzido para SVG
    puro (só rect/path/text/circle), no visual de docs/referencia-visual/02-agente.svg (tema claro padrão).
-   Diferença: a visibilidade do .flow vem do atributo opacity (SMIL dos cenários vivos no SVG; .hl/.dim
-   no passo a passo do HTML), por isso o CSS não fixa opacity no .flow. */
+   Diferença: a visibilidade do .flow vem do atributo opacity="0" animado pelo set do SMIL (cenários vivos).
+   O CSS não fixa opacity no .flow: uma declaração normal venceria o atributo parado, mas um set do SMIL ativo
+   vence o CSS normal; por isso, onde o CSS precisa esconder (movimento reduzido; passo a passo do HTML)
+   usa display: none, que o SMIL não anima, ou !important. */
 svg { font-family: var(--sans); }
 .fundo { fill: var(--bg); }
 #grade circle { fill: var(--grid); }
@@ -68,4 +70,4 @@ svg { font-family: var(--sans); }
 .cen .n { fill: var(--text); font-weight: 600; }
 
 /* Movimento reduzido (adendo 2): nada anima e o tracejado que corre some; o destaque fica no traço. */
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; } .aresta .flow, .token, .no .chegada { display: none; } .cen { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } .aresta .flow, .token, .no .chegada { display: none; } .cen { opacity: 1 !important; } }

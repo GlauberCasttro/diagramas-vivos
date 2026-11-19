@@ -4,9 +4,10 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { carregarFontes } from '../scripts/lib/texto.mjs';
 import { layoutFluxo } from '../scripts/lib/layout-fluxo.mjs';
-import { emitirSvg, caminhoArredondado } from '../scripts/lib/svg.mjs';
+import { emitirSvg, caminhoArredondado, CEN_REPOUSO } from '../scripts/lib/svg.mjs';
 import { validar } from '../scripts/lib/modelo.mjs';
-import { TIPOS } from '../scripts/lib/cores.mjs';
+import { TIPOS, PAPEIS, contraste } from '../scripts/lib/cores.mjs';
+import { CHROME, sondarChrome } from './sonda-chrome.mjs';
 
 const fontes = await carregarFontes(fileURLToPath(new URL('../assets/fonts/', import.meta.url)));
 const ler = (n) => JSON.parse(readFileSync(new URL(`./fixtures/${n}`, import.meta.url), 'utf8'));
@@ -322,7 +323,7 @@ test('agente: ritmo, volta pela aresta --volta, chegada pisca, .flow só no cen�
   assert.match(flowDe('chama~volta'), /begin="m3\.begin" end="m4\.end\+0\.5s"/);
   assert.doesNotMatch(flowDe('revisa'), /m1\.begin/);
   // rodapé: "N. Título: A → B → …", forte enquanto toca
-  assert.match(svg, /<text class="cen"[^>]*opacity="\.55"><tspan class="n">1\. Pedido com uso de ferramenta<\/tspan><tspan>: Usuário → Planejador → Ferramentas → Planejador → Memória<\/tspan><set attributeName="opacity" to="1" begin="m1\.begin" end="m4\.end\+0\.5s"\/><\/text>/);
+  assert.match(svg, /<text class="cen"[^>]*opacity="\.8"><tspan class="n">1\. Pedido com uso de ferramenta<\/tspan><tspan>: Usuário → Planejador → Ferramentas → Planejador → Memória<\/tspan><set attributeName="opacity" to="1" begin="m1\.begin" end="m4\.end\+0\.5s"\/><\/text>/);
   assert.match(svg, /<tspan>: Usuário → Planejador → Revisor<\/tspan><set attributeName="opacity" to="1" begin="m5\.begin" end="m6\.end\+0\.5s"\/>/);
   // movimento reduzido: sem token e sem .flow
   assert.match(svg, /prefers-reduced-motion: reduce\)[^@]*\.token[^}]*display: none/);
@@ -344,4 +345,49 @@ test('passo que é nó só pisca o card e mantém a cadeia', async () => {
 test('animar:false não emite SMIL', async () => {
   const svg = await gerar(ler('agente.json'), { animar: false });
   assert.doesNotMatch(svg, /<animateMotion|<animate |<set |class="token"/);
+});
+
+// Legenda dos cenários em repouso (opacidade CEN_REPOUSO sobre o fundo): AA (>= 4,5:1) nos dois temas,
+// com a cor composta de verdade (texto × opacidade + fundo × (1 − opacidade)).
+test('linhas de cenário em repouso passam AA nos dois temas (cor composta)', async () => {
+  const tokens = readFileSync(new URL('../assets/tokens.css', import.meta.url), 'utf8');
+  const bloco = (sel) => tokens.slice(tokens.indexOf(sel)).split('}')[0];
+  const cor = (b, nome) => new RegExp(`${nome}:\\s*(#[0-9a-fA-F]{6})`).exec(b)[1];
+  const mix = (f, b, a) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(f.slice(i, i + 2), 16) * a + parseInt(b.slice(i, i + 2), 16) * (1 - a)).toString(16).padStart(2, '0')).join('');
+  const a = Number(CEN_REPOUSO);
+  assert.ok(a > 0 && a <= 1);
+  for (const [tema, sel] of [['claro', ':root {'], ['escuro', ':root[data-theme="dark"] {']]) {
+    const b = bloco(sel);
+    const fundo = cor(b, '--bg');
+    assert.equal(fundo, PAPEIS[tema].fundo);
+    for (const nome of ['--text-2', '--text']) {
+      const c = contraste(mix(cor(b, nome), fundo, a), fundo);
+      assert.ok(c >= 4.5, `${tema} ${nome}: ${c.toFixed(2)}:1`);
+    }
+  }
+  const svg = await gerar(ler('agente.json'));
+  assert.equal(conta(svg, `<text class="cen" x="32" y=`), 2);
+  assert.equal(conta(svg, ` opacity="${CEN_REPOUSO}"><tspan class="n">`), 2);
+});
+
+// SMIL de verdade: Chrome headless, timeline pausada e posicionada (pauseAnimations/setCurrentTime).
+test('SMIL no Chrome: em instantes diferentes o token está em arestas diferentes', { skip: !CHROME && 'Chrome ausente', timeout: 90000 }, async () => {
+  const svg = await gerar(ler('agente.json'));
+  const html = `<!doctype html><meta charset="utf-8"><body>${svg}<pre id="sonda"></pre><script>
+addEventListener('load', async () => {
+  const s = document.querySelector('svg'); s.pauseAnimations(); const out = {};
+  for (const t of [0.7, 1.3, 2.9]) {
+    s.setCurrentTime(t); await new Promise((r) => setTimeout(r, 100));
+    const tok = [...document.querySelectorAll('circle.token')].filter((e) => getComputedStyle(e).opacity !== '0')
+      .map((e) => { const r = e.getBoundingClientRect(); return { href: e.querySelector('mpath').getAttribute('href'), x: Math.round(r.x), y: Math.round(r.y) }; });
+    out[t] = tok;
+  }
+  document.getElementById('sonda').textContent = JSON.stringify(out);
+});
+</script>`;
+  const out = sondarChrome(html);
+  assert.deepEqual(out['0.7'].map((t) => t.href), ['#a-pede']);
+  assert.deepEqual(out['1.3'].map((t) => t.href), ['#a-chama']);
+  assert.deepEqual(out['2.9'].map((t) => t.href), ['#a-lembra']);
+  assert.notDeepEqual([out['0.7'][0].x, out['0.7'][0].y], [out['1.3'][0].x, out['1.3'][0].y]);
 });

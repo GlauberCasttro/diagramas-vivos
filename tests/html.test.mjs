@@ -6,6 +6,7 @@ import { carregarFontes } from '../scripts/lib/texto.mjs';
 import { layoutFluxo } from '../scripts/lib/layout-fluxo.mjs';
 import { emitirSvg } from '../scripts/lib/svg.mjs';
 import { emitirHtml } from '../scripts/lib/html.mjs';
+import { CHROME, sondarChrome } from './sonda-chrome.mjs';
 
 const fontes = await carregarFontes(fileURLToPath(new URL('../assets/fonts/', import.meta.url)));
 const ler = (n) => JSON.parse(readFileSync(new URL(`./fixtures/${n}`, import.meta.url), 'utf8'));
@@ -81,4 +82,54 @@ test('câmera fixa, tocar 1500 ms, barra com ida "→" e volta "⇠ · resposta"
   assert.doesNotMatch(stepper, /enquadrarPasso|3000/);
   assert.match(html, /\.passo-a-passo [^{]*\.token[^{]*\{[^}]*display: none/);
   assert.match(html, /\.portas \[data-aresta\]\.dim/);
+});
+
+// Passo a passo: o SMIL do SVG continua rodando por baixo e um <set> ativo vence `opacity` do CSS; por isso o
+// .flow das arestas fora do passo some por display (que o SMIL não anima) e as legendas ficam fixas (!important).
+test('modo passo: .flow inativo some por display e legendas fixas (regras CSS)', async () => {
+  const { html } = await gerar(ler('agente.json'));
+  assert.match(html, /html\.passo-a-passo #vp \.aresta:not\(\.hl\) \.flow \{ display: none; \}/);
+  assert.match(html, /html\.passo-a-passo #vp \.cen \{ opacity: 1 !important; \}/);
+  assert.doesNotMatch(html, /\.aresta\.dim \.flow \{ opacity: 0; \}/);
+});
+
+test('modo passo no Chrome: com o SMIL tocando, só o .flow do passo aparece; câmera fixa entre passos', { skip: !CHROME && 'Chrome ausente', timeout: 90000 }, async () => {
+  const { html } = await gerar(ler('agente.json'));
+  const sonda = `<pre id="sonda"></pre><script>
+addEventListener('load', async () => {
+  const espera = () => new Promise((r) => setTimeout(r, 100));
+  const s = document.querySelector('#vp svg'); const out = {};
+  const ver = (rot) => {
+    const flows = [...document.querySelectorAll('g.aresta')].map((g) => {
+      const f = g.querySelector('.flow'); const cs = getComputedStyle(f);
+      return { id: g.dataset.id, hl: g.classList.contains('hl'), visivel: cs.display !== 'none' && cs.opacity !== '0' };
+    });
+    out[rot] = { flows, cen: [...document.querySelectorAll('.cen')].map((t) => getComputedStyle(t).opacity),
+      token: getComputedStyle(document.querySelector('circle.token')).display, vp: document.getElementById('vp').style.transform };
+  };
+  s.pauseAnimations();
+  for (const t of [1.3, 3.0]) { s.setCurrentTime(t); await espera(); ver('passo1@' + t); }
+  dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+  dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+  await espera(); ver('passo3');
+  dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  s.setCurrentTime(1.3); await espera(); ver('repouso@1.3');
+  document.getElementById('sonda').textContent = JSON.stringify(out);
+});
+</script>`;
+  const out = sondarChrome(html.replace('</body>', `${sonda}</body>`), { hash: '#passo=1' });
+  for (const rot of ['passo1@1.3', 'passo1@3', 'passo3']) {
+    const o = out[rot];
+    for (const f of o.flows) assert.equal(f.visivel, f.hl, `${rot} ${f.id}: visível=${f.visivel} hl=${f.hl}`);
+    assert.deepEqual(o.cen, ['1', '1'], `${rot} legendas fixas`);
+    assert.equal(o.token, 'none', `${rot} token SMIL oculto`);
+  }
+  assert.deepEqual(out['passo1@3'].flows.filter((f) => f.hl).map((f) => f.id), ['pede']);
+  assert.deepEqual(out.passo3.flows.filter((f) => f.hl).map((f) => f.id), ['chama~volta']);
+  assert.equal(out.passo3.vp, out['passo1@1.3'].vp, 'câmera não se move entre os passos 1 e 3');
+  // fora do passo a passo o SMIL volta a mandar: token visível e legenda do flow 1 forte, a do 2 em repouso
+  const r = out['repouso@1.3'];
+  assert.equal(r.token, 'inline');
+  assert.deepEqual(r.cen, ['1', '0.8']);
+  assert.deepEqual(r.flows.filter((f) => f.visivel).map((f) => f.id).sort(), ['chama', 'pede']);
 });

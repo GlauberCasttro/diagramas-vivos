@@ -253,6 +253,8 @@ function emitirLegenda(itens, fontes, y0, largura) {
 const RITMO = { inicio: 0.5, salto: 0.25, entreFlows: 1.1, porPx: 0.38 / 120, minimo: 0.3, cauda: 0.5 };
 const comprimento = (pts) => pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
 const SETA = ' \u2192 ';
+// Opacidade das linhas de cenário em repouso: >= 4,5:1 composta sobre o fundo nos dois temas (teste em svg.test).
+export const CEN_REPOUSO = '.8';
 
 // Cadeia SMIL: um elemento por passo (animateMotion para aresta, animate do contorno para nó), ids
 // m1..mN na ordem dos flows; cada um começa 0,25 s depois do anterior (1,1 s entre flows) e o primeiro
@@ -408,7 +410,7 @@ export function emitirSvg(diagrama, layout, fontes, opcoes = {}) {
     ? vivo.flows
         .map((fl, i) => {
           const { n, resto } = linhaCenario(fontes, i, fl, largura - 2 * MARGEM);
-          return `<text class="cen" x="${MARGEM}" y="${n1(yCen(i))}" opacity=".55"><tspan class="n">${esc(n)}</tspan><tspan>${esc(resto)}</tspan><set attributeName="opacity" to="1" begin="${fl.begin}" end="${fl.end}"/></text>\n`;
+          return `<text class="cen" x="${MARGEM}" y="${n1(yCen(i))}" opacity="${CEN_REPOUSO}"><tspan class="n">${esc(n)}</tspan><tspan>${esc(resto)}</tspan><set attributeName="opacity" to="1" begin="${fl.begin}" end="${fl.end}"/></text>\n`;
         })
         .join('')
     : '';

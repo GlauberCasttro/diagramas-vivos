@@ -3,10 +3,11 @@
 // assets/stepper.js (html.mjs remove as palavras "export" ao embutir).
 
 // O que o passo i (0-based, dentro do flow) realça.
-// passos: [{ref}] do flow; arestas: {id: {de, para}}. Retorna {nos: Set, arestas: Set, sentido}. sentido: 'ida'|'volta' p/ ref aresta (padrão ida), null p/ nó.
+// passos: [{ref}] do flow; arestas: {id: {de, para}}. Retorna {nos: Set, arestas: Set, sentido}. sentido: 'ida'|'volta' p/ ref aresta (padrão ida), null p/ nó. Em passo de nó, arestas pode trazer '<id>~volta' (id do Layout).
 // - ref aresta: a aresta e os nós das pontas.
 // - ref nó: o nó e a aresta pela qual se chegou a ele:
 //   passo anterior é aresta com para === ref -> essa aresta (inclusive se for um laço);
+//   passo anterior é a volta da aresta (sentido "volta") com de === ref -> "<id>~volta" (a volta chega no de);
 //   passo anterior é nó X !== ref -> arestas X -> ref;
 //   caso contrário (primeiro passo, mesmo nó, aresta que não chega a ref) -> só o nó.
 //   Laço nunca é inferido: só entra se o passo anterior FOR a aresta do laço.
@@ -22,7 +23,10 @@ export function destaques(passos, i, arestas) {
   const ant = i > 0 ? passos[i - 1].ref : null;
   if (ant != null) {
     const aa = arestas[ant];
-    if (aa) { if (aa.para === ref) hl.add(ant); }
+    if (aa) {
+      if (passos[i - 1].sentido === 'volta') { if (aa.de === ref) hl.add(`${ant}~volta`); }
+      else if (aa.para === ref) hl.add(ant);
+    }
     else if (ant !== ref) {
       for (const [id, x] of Object.entries(arestas)) if (x.de === ant && x.para === ref) hl.add(id);
     }

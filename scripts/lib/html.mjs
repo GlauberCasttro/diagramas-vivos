@@ -33,12 +33,14 @@ button[hidden] { display: none; }
 /* #vp na frente: o <style> do SVG vem depois no documento e venceria com a mesma especificidade. */
 #vp .no, #vp .aresta, #vp .portas [data-aresta] { transition: opacity .3s var(--ease); }
 #vp .no.dim, #vp .aresta.dim, #vp .portas [data-aresta].dim { opacity: .2; }
-#vp .aresta.dim .flow { opacity: 0; }
 #vp .no.hl .card { stroke: var(--c); stroke-opacity: 1; stroke-width: 2.5; }
 #vp .aresta.hl .trace { stroke-opacity: 1; }
 #vp .aresta.hl .flow { opacity: .95; animation: fluxo 1.1s linear infinite; }
 /* No passo a passo os tokens SMIL e a chegada animada somem; ao sair, voltam (a cadeia nunca para). */
 html.passo-a-passo #vp .token, html.passo-a-passo #vp .chegada { display: none; }
+/* O <set> ativo do SMIL vence opacity do CSS: fora do passo, o .flow some por display; legendas fixas. */
+html.passo-a-passo #vp .aresta:not(.hl) .flow { display: none; }
+html.passo-a-passo #vp .cen { opacity: 1 !important; }
 #vp .no.pulsa .card { animation: pulsa 1.5s var(--ease) infinite; }
 @keyframes pulsa { 0%, 100% { stroke: var(--c); stroke-width: 2.5; stroke-opacity: 1; } 50% { stroke-width: 5; stroke-opacity: .35; } }
 #barra #b-rota { color: var(--text-2); font-size: 13px; }

@@ -61,3 +61,21 @@ test('sentido: ida por padrão e volta explícita em ref de aresta; null em nó'
   assert.deepEqual(como(v), { nos: ['build', 'pedido'], arestas: ['pedido-build'] });
   assert.equal(destaques(p, 2, retorno).sentido, null);
 });
+
+// Passo de nó logo depois de um passo de volta: a volta chega no "de" da aresta e o destaque é <id>~volta.
+test('nó depois de volta: chega no "de" e destaca <id>~volta', () => {
+  const p = [{ ref: 'pedido-build' }, { ref: 'pedido-build', sentido: 'volta' }, { ref: 'pedido' }];
+  const r = destaques(p, 2, retorno);
+  assert.equal(r.sentido, null);
+  assert.deepEqual(como(r), { nos: ['pedido'], arestas: ['pedido-build~volta'] });
+});
+
+test('nó "para" depois de volta: não destaca a ida (a volta não chega nele)', () => {
+  const p = [{ ref: 'pedido-build' }, { ref: 'pedido-build', sentido: 'volta' }, { ref: 'build' }];
+  assert.deepEqual(como(destaques(p, 2, retorno)), { nos: ['build'], arestas: [] });
+});
+
+test('nó depois de ida explícita continua destacando a ida', () => {
+  const p = [{ ref: 'pedido-build', sentido: 'ida' }, { ref: 'build' }];
+  assert.deepEqual(como(destaques(p, 1, retorno)), { nos: ['build'], arestas: ['pedido-build'] });
+});
