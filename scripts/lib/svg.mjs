@@ -1,3 +1,4 @@
+// Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
 // Emissão do SVG animado (sem JS e sem objeto estrangeiro HTML) no visual do floorplan.
 // Estrutura estável para o stepper (Task 6): cada nó é <g class="no papel-X" data-id>, cada aresta é
 // <g class="aresta papel-X" data-id> com path.trace (com marker-end) e path.flow.
@@ -33,6 +34,33 @@ export function esc(t) {
 }
 
 const n1 = (v) => Math.round(v * 10) / 10;
+
+// Polilinha ortogonal com cantos arredondados (spec §7.4), como o roundedPath do floorplan
+// (viewer.html:1047-1060). A curva fica dentro do triângulo do cotovelo, a no máximo `r` px dele; a
+// verificação de geometria continua sobre a polilinha. O último trecho é sempre reta: a seta (orient=auto)
+// segue alinhada. Pontos colineares não ganham curva.
+export function caminhoArredondado(pontos, r = 10) {
+  const [x0, y0] = pontos[0];
+  let d = `M${n1(x0)},${n1(y0)}`;
+  for (let i = 1; i < pontos.length - 1; i++) {
+    const [ax, ay] = pontos[i - 1];
+    const [bx, by] = pontos[i];
+    const [cx, cy] = pontos[i + 1];
+    const d1 = Math.hypot(bx - ax, by - ay);
+    const d2 = Math.hypot(cx - bx, cy - by);
+    const rr = Math.min(r, d1 / 2, d2 / 2);
+    const colinear = Math.abs((bx - ax) * (cy - by) - (by - ay) * (cx - bx)) < 1e-9;
+    if (!rr || colinear) {
+      d += ` L${n1(bx)},${n1(by)}`;
+      continue;
+    }
+    const p1 = [bx + ((ax - bx) * rr) / d1, by + ((ay - by) * rr) / d1];
+    const p2 = [bx + ((cx - bx) * rr) / d2, by + ((cy - by) * rr) / d2];
+    d += ` L${n1(p1[0])},${n1(p1[1])} Q${n1(bx)},${n1(by)} ${n1(p2[0])},${n1(p2[1])}`;
+  }
+  const [zx, zy] = pontos[pontos.length - 1];
+  return `${d} L${n1(zx)},${n1(zy)}`;
+}
 
 const ROTULO_NO = {
   feliz: 'etapa do caminho feliz',
@@ -92,7 +120,7 @@ function emitirAresta(aresta, geo, corre, fontes) {
   const cls = ['aresta', `papel-${aresta.papel}`, corre ? 'corre' : null, aresta.nivel === 'proposto' ? 'proposto' : null]
     .filter(Boolean)
     .join(' ');
-  const d = geo.pontos.map(([x, y], i) => `${i ? 'L' : 'M'}${n1(x)},${n1(y)}`).join(' ');
+  const d = caminhoArredondado(geo.pontos);
   let s = `<g class="${cls}" data-id="${esc(aresta.id)}"><path class="trace" d="${d}" marker-end="url(#seta-${aresta.papel})"/><path class="flow" d="${d}"/>`;
   const r = geo.rotulo;
   if (r) {

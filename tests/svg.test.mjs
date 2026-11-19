@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { carregarFontes } from '../scripts/lib/texto.mjs';
 import { layoutFluxo } from '../scripts/lib/layout-fluxo.mjs';
-import { emitirSvg } from '../scripts/lib/svg.mjs';
+import { emitirSvg, caminhoArredondado } from '../scripts/lib/svg.mjs';
 import { validar } from '../scripts/lib/modelo.mjs';
 
 const fontes = await carregarFontes(fileURLToPath(new URL('../assets/fonts/', import.meta.url)));
@@ -167,4 +167,27 @@ test('nome da zona vem depois das arestas e tem halo do fundo', async () => {
   const zonas = svg.slice(svg.indexOf('<g class="zonas">'), iArestas);
   assert.equal(conta(zonas, '<text'), 0, 'texto de zona fora do grupo de nomes');
   assert.match(svg, /\.nomes-zona text \{[^}]*paint-order: stroke[^}]*stroke: var\(--bg\)/);
+});
+
+// Spec §7.4: cantos arredondados nas arestas, como o roundedPath do floorplan (raio 10).
+test('caminhoArredondado: reta sem curva; cotovelo vira Q com raio 10; raio limitado à metade do segmento', () => {
+  assert.equal(caminhoArredondado([[0, 0], [100, 0]]), 'M0,0 L100,0');
+  assert.equal(caminhoArredondado([[0, 0], [100, 0], [100, 50]]), 'M0,0 L90,0 Q100,0 100,10 L100,50');
+  assert.equal(caminhoArredondado([[0, 0], [8, 0], [8, 50]]), 'M0,0 L4,0 Q8,0 8,4 L8,50');
+  // pontos colineares não ganham curva
+  assert.equal(caminhoArredondado([[0, 0], [50, 0], [100, 0]]), 'M0,0 L50,0 L100,0');
+});
+
+test('arestas com cotovelo saem com cantos arredondados no SVG; último trecho é reta (seta alinhada)', async () => {
+  const d = ler('retorno.json');
+  const L = await layoutFluxo(d, fontes);
+  const svg = emitirSvg(d, L, fontes);
+  const comCotovelo = L.arestas.filter((a) => a.pontos.length > 2);
+  assert.ok(comCotovelo.length > 0);
+  for (const a of comCotovelo) {
+    const bloco = svg.slice(svg.indexOf(`<g class="aresta`, svg.indexOf(`data-id="${a.id}"`) - 60));
+    const dTrace = /class="trace" d="([^"]+)"/.exec(bloco)[1];
+    assert.match(dTrace, /Q/, a.id);
+    assert.match(dTrace, /L[\d.-]+,[\d.-]+$/, a.id);
+  }
 });
