@@ -66,8 +66,11 @@ export function validar(d) {
     if (!nosIds.has(a.de)) erros.push(`${r}.de: ${a.de}`);
     if (!nosIds.has(a.para)) erros.push(`${r}.para: ${a.para}`);
     if (!PAPEIS_ARESTA.includes(a.papel)) erros.push(`${r}.papel: ${a.papel} (aceita ${PAPEIS_ARESTA.join('|')})`);
+    if (a.resposta !== undefined && (!str(a.resposta) || a.resposta.length > 40))
+      erros.push(`${r}.resposta: texto de 1 a 40 caracteres`);
     nivel(a, r);
   });
+  const arestaPorId = new Map(arestas.filter(obj).map((a) => [a.id, a]));
 
   // Zonas, nós e arestas viram nós do mesmo grafo de layout: ids não podem colidir. As zonas ficam fora
   // de `ids` para que passo de flow nunca as referencie.
@@ -84,6 +87,13 @@ export function validar(d) {
       f.passos.forEach((p, j) => {
         if (!obj(p) || !ids.has(p.ref)) erros.push(`${r}.passos[${j}].ref: ${obj(p) ? p.ref : p}`);
         else if (!str(p.nota)) erros.push(`${r}.passos[${j}].nota: obrigatório`);
+        if (obj(p) && p.sentido !== undefined) {
+          const rs = `${r}.passos[${j}].sentido`;
+          const a = arestaPorId.get(p.ref);
+          if (p.sentido !== 'ida' && p.sentido !== 'volta') erros.push(`${rs}: ${p.sentido} (aceita ida|volta)`);
+          else if (!a) erros.push(`${rs}: só vale quando ref é aresta`);
+          else if (p.sentido === 'volta' && !str(a.resposta)) erros.push(`${rs}: volta exige resposta na aresta ${a.id}`);
+        }
       });
     });
   }

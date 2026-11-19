@@ -52,3 +52,12 @@ test('passoDoHash: 0, inválido e ausente são repouso; acima do total limita', 
   assert.equal(passoDoHash('#passo=3', 3), 3);
   assert.equal(passoDoHash('#passo=99', 3), 3);
 });
+
+test('sentido: ida por padrão e volta explícita em ref de aresta; null em nó', () => {
+  const p = [{ ref: 'pedido-build' }, { ref: 'pedido-build', sentido: 'volta' }, { ref: 'build' }];
+  assert.equal(destaques(p, 0, retorno).sentido, 'ida');
+  const v = destaques(p, 1, retorno);
+  assert.equal(v.sentido, 'volta');
+  assert.deepEqual(como(v), { nos: ['build', 'pedido'], arestas: ['pedido-build'] });
+  assert.equal(destaques(p, 2, retorno).sentido, null);
+});

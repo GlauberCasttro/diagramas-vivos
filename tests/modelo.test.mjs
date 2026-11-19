@@ -67,3 +67,22 @@ test('zonas com nós são válidas', () => {
   const d = base(); d.zonas = [{ id: 'z1', nome: 'Zona' }]; d.nos[0].zona = 'z1';
   assert.equal(validar(d).ok, true);
 });
+
+test('resposta válida na aresta', () => {
+  const d = base(); d.arestas[0].resposta = 'ok'; assert.equal(validar(d).ok, true);
+});
+test('resposta vazia ou longa demais é erro', () => {
+  const d = base(); d.arestas[0].resposta = ''; temErro(d, 'arestas[a-b].resposta');
+  d.arestas[0].resposta = 'x'.repeat(41); temErro(d, 'arestas[a-b].resposta');
+  d.arestas[0].resposta = 'x'.repeat(40); assert.equal(validar(d).ok, true);
+});
+test('sentido volta em aresta sem resposta é erro', () => {
+  const d = base(); d.flows[0].passos[0].ref = 'a-b'; d.flows[0].passos[0].sentido = 'volta';
+  temErro(d, 'flows[f1].passos[0].sentido');
+  d.arestas[0].resposta = 'ok'; assert.equal(validar(d).ok, true);
+});
+test('sentido em ref de nó é erro; sentido inválido é erro', () => {
+  const d = base(); d.flows[0].passos[0].sentido = 'ida'; temErro(d, 'flows[f1].passos[0].sentido');
+  const e = base(); e.flows[0].passos[0].ref = 'a-b'; e.flows[0].passos[0].sentido = 'x';
+  temErro(e, 'flows[f1].passos[0].sentido');
+});

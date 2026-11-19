@@ -3,7 +3,7 @@
 // assets/stepper.js (html.mjs remove as palavras "export" ao embutir).
 
 // O que o passo i (0-based, dentro do flow) realça.
-// passos: [{ref}] do flow; arestas: {id: {de, para}}. Retorna {nos: Set, arestas: Set}.
+// passos: [{ref}] do flow; arestas: {id: {de, para}}. Retorna {nos: Set, arestas: Set, sentido}. sentido: 'ida'|'volta' p/ ref aresta (padrão ida), null p/ nó.
 // - ref aresta: a aresta e os nós das pontas.
 // - ref nó: o nó e a aresta pela qual se chegou a ele:
 //   passo anterior é aresta com para === ref -> essa aresta (inclusive se for um laço);
@@ -16,7 +16,7 @@ export function destaques(passos, i, arestas) {
   const a = arestas[ref];
   if (a) {
     hl.add(ref); nos.add(a.de); nos.add(a.para);
-    return { nos, arestas: hl };
+    return { nos, arestas: hl, sentido: passos[i].sentido === 'volta' ? 'volta' : 'ida' };
   }
   nos.add(ref);
   const ant = i > 0 ? passos[i - 1].ref : null;
@@ -27,7 +27,7 @@ export function destaques(passos, i, arestas) {
       for (const [id, x] of Object.entries(arestas)) if (x.de === ant && x.para === ref) hl.add(id);
     }
   }
-  return { nos, arestas: hl };
+  return { nos, arestas: hl, sentido: null };
 }
 
 // Passo pedido pelo hash: "#passo=N" com 1 <= N; N acima de total é limitado a total.
