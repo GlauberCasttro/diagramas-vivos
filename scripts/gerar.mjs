@@ -2,7 +2,7 @@
 // CLI: valida -> fontes -> layout -> (libavoid) -> geometria + orçamentos -> escreve SVG, HTML e cópia do modelo.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { validar } from './lib/modelo.mjs';
 import { carregarFontes, cobertura } from './lib/texto.mjs';
 import { layoutFluxo } from './lib/layout-fluxo.mjs';
@@ -11,8 +11,10 @@ import { verificarGeometria } from './lib/geometria.mjs';
 import { emitirSvg } from './lib/svg.mjs';
 import { emitirHtml } from './lib/html.mjs';
 
-const LIMITE_SVG = 150 * 1024;
-const LIMITE_HTML = 300 * 1024;
+const limite = (env, padrao) => {
+  const n = Number(process.env[env]);
+  return Number.isFinite(n) && n > 0 ? n : padrao;
+};
 const DIR_FONTES = fileURLToPath(new URL('../assets/fonts/', import.meta.url));
 
 function sair(obj, codigo) {
@@ -47,10 +49,21 @@ export function slug(t) {
 function proximoNumero(dir) {
   let max = 0;
   for (const f of readdirSync(dir)) {
+    if (!/^\d{2,}-.*\.(svg|html|diagram\.json)$/.test(f)) continue;
     const m = /^(\d+)-/.exec(f);
     if (m) max = Math.max(max, Number(m[1]));
   }
   return max + 1;
+}
+
+// Violações finais: geometria + orçamentos de bytes. Exit 2 quando a lista não é vazia.
+export function avaliar(layout, bytes, limites = {}) {
+  const lsvg = limites.svg ?? limite('DIAGRAMAS_VIVOS_LIMITE_SVG', 150 * 1024);
+  const lhtml = limites.html ?? limite('DIAGRAMAS_VIVOS_LIMITE_HTML', 300 * 1024);
+  const v = verificarGeometria(layout);
+  if (bytes.svg >= lsvg) v.push({ tipo: 'orcamento', arquivo: 'svg', bytes: bytes.svg, limite: lsvg });
+  if (bytes.html >= lhtml) v.push({ tipo: 'orcamento', arquivo: 'html', bytes: bytes.html, limite: lhtml });
+  return v;
 }
 
 function textos(d) {
@@ -74,6 +87,9 @@ async function main() {
   if (!['elk', 'libavoid'].includes(args.roteador)) {
     sair({ erro: 'roteador inválido', erros: [`roteador inválido: ${args.roteador}`] }, 1);
   }
+  if (args.nome && /[\\/]|\.\./.test(args.nome)) {
+    sair({ erro: '--nome inválido', erros: [`--nome não pode conter / \\ ou ..: ${args.nome}`] }, 1);
+  }
   let diagrama;
   try {
     diagrama = JSON.parse(readFileSync(args.entrada, 'utf8'));
@@ -87,13 +103,11 @@ async function main() {
   let layout = await layoutFluxo(diagrama, fontes);
   if (args.roteador === 'libavoid') layout = await rotearLibavoid(layout, diagrama);
 
-  const violacoes = verificarGeometria(layout);
   const avisos = cobertura(fontes, textos(diagrama));
   const svg = emitirSvg(diagrama, layout, fontes);
   const html = emitirHtml(diagrama, layout, svg);
   const bytes = { svg: Buffer.byteLength(svg), html: Buffer.byteLength(html) };
-  if (bytes.svg >= LIMITE_SVG) violacoes.push({ tipo: 'orcamento', arquivo: 'svg', bytes: bytes.svg, limite: LIMITE_SVG });
-  if (bytes.html >= LIMITE_HTML) violacoes.push({ tipo: 'orcamento', arquivo: 'html', bytes: bytes.html, limite: LIMITE_HTML });
+  const violacoes = avaliar(layout, bytes);
 
   const dir = resolve(args.saida);
   mkdirSync(dir, { recursive: true });
@@ -113,4 +127,4 @@ async function main() {
   sair({ arquivos, bytes, violacoes, avisos, roteador: args.roteador }, violacoes.length ? 2 : 0);
 }
 
-main().catch((e) => sair({ erro: 'falha interna', erros: [String(e?.stack ?? e)] }, 1));
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main().catch((e) => sair({ erro: 'falha interna', erros: [String(e?.stack ?? e)] }, 1));

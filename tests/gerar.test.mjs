@@ -5,6 +5,7 @@ import { mkdtempSync, readdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { slug, avaliar } from '../scripts/gerar.mjs';
 
 const GERAR = fileURLToPath(new URL('../scripts/gerar.mjs', import.meta.url));
 const MINIMO = fileURLToPath(new URL('./fixtures/minimo.json', import.meta.url));
@@ -58,6 +59,57 @@ test('texto com → gera aviso', () => {
 test('libavoid roda e informa o roteador', () => {
   const d = tmp();
   const r = rodar([MINIMO, '--saida', d, '--roteador', 'libavoid']);
-  assert.ok([0, 2].includes(r.status), r.stderr);
-  assert.equal(JSON.parse(r.stdout).roteador, 'libavoid');
+  const j = JSON.parse(r.stdout);
+  assert.equal(r.status, j.violacoes.length ? 2 : 0, r.stderr);
+  assert.equal(j.roteador, 'libavoid');
+});
+
+test('orçamento estourado: exit 2, arquivos escritos, violação orcamento', () => {
+  const d = tmp();
+  const r = spawnSync('node', [GERAR, MINIMO, '--saida', d], {
+    encoding: 'utf8',
+    env: { ...process.env, DIAGRAMAS_VIVOS_LIMITE_SVG: '100', DIAGRAMAS_VIVOS_LIMITE_HTML: '200' },
+  });
+  assert.equal(r.status, 2);
+  const j = JSON.parse(r.stdout);
+  assert.equal(readdirSync(d).length, 3);
+  const o = j.violacoes.find((v) => v.arquivo === 'svg');
+  assert.equal(o.tipo, 'orcamento');
+  assert.equal(o.limite, 100);
+  assert.equal(o.bytes, j.bytes.svg);
+  assert.ok(j.violacoes.some((v) => v.arquivo === 'html' && v.limite === 200));
+});
+
+test('avaliar: layout com violação de geometria gera violações; limpo não', () => {
+  const ok = { largura: 400, altura: 300, zonas: [], nos: [{ id: 'a', x: 100, y: 100, w: 100, h: 50 }], arestas: [] };
+  assert.deepEqual(avaliar(ok, { svg: 1, html: 1 }), []);
+  const ruim = {
+    ...ok,
+    arestas: [{ id: 'e', pontos: [[0, 125], [400, 125]] }],
+  };
+  assert.ok(avaliar(ruim, { svg: 1, html: 1 }).length > 0);
+});
+
+test('--nome com separador ou .. : exit 1 e nada escrito', () => {
+  for (const n of ['../x', 'a/b', 'a\\b']) {
+    const d = tmp();
+    const r = rodar([MINIMO, '--saida', d, '--nome', n]);
+    assert.equal(r.status, 1, n);
+    assert.ok(JSON.parse(r.stdout).erro);
+    assert.deepEqual(readdirSync(d), []);
+  }
+});
+
+test('numeração ignora arquivos que não são saídas', () => {
+  const d = tmp();
+  writeFileSync(join(d, '99-notas.txt'), 'x');
+  rodar([MINIMO, '--saida', d]);
+  assert.ok(readdirSync(d).includes('01-minimo.svg'));
+});
+
+test('slug: acentos, travessão, 60 chars sem hífen final', () => {
+  assert.equal(slug('Açaí — Fluxo São João'), 'acai-fluxo-sao-joao');
+  const s = slug(`${'a'.repeat(59)} — fim`);
+  assert.equal(s, 'a'.repeat(59));
+  assert.ok(slug('x'.repeat(80)).length <= 60);
 });
