@@ -34,9 +34,15 @@ function variante(fontes, familia, peso) {
       v.variationCoords = base.fvar.axis.map((a) => (a.axisTag.trim() === 'wght' ? w : a.defaultValue));
       // base.layout() memoiza _variationProcessor=null na instância; chama o getter da classe
       // diretamente para criar o processador desta variante.
+      if (!base.HVAR) {
+        throw new Error(`fonte "${familia}" tem eixo wght mas não tem tabela HVAR: medição por peso indisponível`);
+      }
       let proto = Object.getPrototypeOf(base);
       while (proto && !Object.getOwnPropertyDescriptor(proto, '_variationProcessor')) proto = Object.getPrototypeOf(proto);
-      const getter = Object.getOwnPropertyDescriptor(proto, '_variationProcessor').get;
+      const getter = proto && Object.getOwnPropertyDescriptor(proto, '_variationProcessor').get;
+      if (!getter) {
+        throw new Error('fontkit: _variationProcessor não encontrado; texto.mjs foi escrito para fontkit 2.0.4 (versão pinada). Revise a medição por peso ao atualizar.');
+      }
       Object.defineProperty(v, '_variationProcessor', { value: undefined, writable: true, configurable: true });
       proc = getter.call(v);
     }

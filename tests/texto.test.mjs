@@ -32,3 +32,30 @@ test('cobertura: acentos e travessão ok; seta fora', () => {
   assert.deepEqual(cobertura(fontes, ['ação — ok']), []);
   assert.deepEqual(cobertura(fontes, ['sim → não']), ['→']);
 });
+
+test('medir: larguras absolutas fixas (Inter 13px)', () => {
+  const t = 'Aprovação manual';
+  const e = { familia: 'sans', tamanho: 13 };
+  assert.ok(Math.abs(medir(fontes, t, { ...e, peso: 400 }) - 114.5) <= 0.5);
+  assert.ok(Math.abs(medir(fontes, t, { ...e, peso: 700 }) - 119.0) <= 0.5);
+});
+
+test('medir: mono independe do peso', () => {
+  const e = { familia: 'mono', tamanho: 13 };
+  assert.equal(medir(fontes, 'Aprovação', { ...e, peso: 100 }), medir(fontes, 'Aprovação', { ...e, peso: 900 }));
+});
+
+test('medir: peso fora do eixo é limitado a 100..900', () => {
+  const e = { familia: 'sans', tamanho: 13 };
+  const t = 'Aprovação manual';
+  assert.equal(medir(fontes, t, { ...e, peso: -5 }), medir(fontes, t, { ...e, peso: 100 }));
+  assert.equal(medir(fontes, t, { ...e, peso: 2000 }), medir(fontes, t, { ...e, peso: 900 }));
+});
+
+test('quebrar: descrição longa em 3 linhas', () => {
+  const t = 'Executa a verificação completa de integridade dos artefatos gerados pelo pipeline de entrega contínua antes de liberar a publicação em produção para todos os clientes';
+  const l = quebrar(fontes, t, ESTILO.descricao, 180, 3);
+  assert.ok(l.length <= 3);
+  for (const x of l) assert.ok(medir(fontes, x, ESTILO.descricao) <= 180, x);
+  assert.ok(l[l.length - 1].endsWith('…'));
+});
