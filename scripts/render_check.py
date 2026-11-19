@@ -77,7 +77,9 @@ def main():
 
     chrome = achar_chrome()
     if not chrome:
-        print("FAIL: Chrome/Chromium nao encontrado. Procurei em: " + ", ".join(CANDIDATOS), file=sys.stderr)
+        env = os.environ.get("DIAGRAMAS_VIVOS_CHROME")
+        onde = f"{env} (DIAGRAMAS_VIVOS_CHROME)" if env else ", ".join(CANDIDATOS)
+        print("FAIL: Chrome/Chromium nao encontrado. Procurei em: " + onde, file=sys.stderr)
         return 1
 
     html = os.path.abspath(a.html)
