@@ -21,6 +21,7 @@ Saida padrao: pasta irma <stem>-capturas/.
 import argparse
 import json
 import os
+import pathlib
 import shutil
 import subprocess
 import sys
@@ -36,6 +37,9 @@ CANDIDATOS = [
 
 
 def achar_chrome():
+    env = os.environ.get("DIAGRAMAS_VIVOS_CHROME")
+    if env:  # se definido, so ele conta
+        return env if os.path.exists(env) else None
     for c in CANDIDATOS:
         p = c if os.path.isabs(c) else shutil.which(c)
         if p and os.path.exists(p):
@@ -44,6 +48,8 @@ def achar_chrome():
 
 
 def capturar(chrome, url, png, esquema):
+    if os.path.exists(png):
+        os.remove(png)  # nunca aceitar PNG de execucao anterior
     with tempfile.TemporaryDirectory(prefix="dv-chrome-") as perfil:
         cmd = [chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run",
                "--force-prefers-reduced-motion", "--virtual-time-budget=1500",
@@ -52,7 +58,7 @@ def capturar(chrome, url, png, esquema):
                f"--window-size={LARGURA},{ALTURA}", f"--screenshot={png}", url]
         try:
             subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90)
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, OSError):
             return False
     return os.path.exists(png) and os.path.getsize(png) > 0
 
@@ -103,11 +109,11 @@ def main():
         claro = os.path.join(tmp, "claro.svg")
         with open(claro, "w", encoding="utf-8") as f:
             f.write(src.replace("<svg ", '<svg data-theme="light" ', 1))
-        tentar("file://" + svg, "svg-escuro.png", "escuro")
-        tentar("file://" + claro, "svg-claro.png", "claro")
+        tentar(pathlib.Path(svg).as_uri(), "svg-escuro.png", "escuro")
+        tentar(pathlib.Path(claro).as_uri(), "svg-claro.png", "claro")
         for i in range(1, n + 1):
             for tema in ("escuro", "claro"):
-                tentar(f"file://{html}#passo={i}", f"passo-{i:02d}-{tema}.png", tema)
+                tentar(f"{pathlib.Path(html).as_uri()}#passo={i}", f"passo-{i:02d}-{tema}.png", tema)
 
     for p in gerados:
         print(p)

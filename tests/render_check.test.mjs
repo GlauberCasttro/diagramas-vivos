@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, statSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,9 +33,26 @@ test('captura: 2 + 2 x passos PNGs não vazios; escuro e claro diferem', { skip:
   assert.ok(r.stdout.includes('passo-02-claro.png'));
 });
 
-test('Chrome ausente: exit 1 com mensagem dos locais', () => {
-  const r = spawnSync('python3', [RENDER, 'x.html'], { encoding: 'utf8', env: { PATH: '/nonexistent' } });
-  if (temChrome && existsSync('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')) return; // caminho absoluto sempre acha
+const geraBase = () => {
+  const d = mkdtempSync(join(tmpdir(), 'dv-rc-'));
+  assert.equal(spawnSync('node', [GERAR, MINIMO, '--saida', d, '--nome', '01-minimo'], { encoding: 'utf8' }).status, 0);
+  return d;
+};
+
+test('Chrome ausente (DIAGRAMAS_VIVOS_CHROME inexistente): exit 1 com mensagem', () => {
+  const d = geraBase();
+  const r = spawnSync('python3', [RENDER, join(d, '01-minimo.html')], { encoding: 'utf8', env: { ...process.env, DIAGRAMAS_VIVOS_CHROME: '/nao/existe/chrome' } });
   assert.equal(r.status, 1);
-  assert.match(r.stderr, /Procurei em/);
+  assert.match(r.stderr, /Procurei em: \/nao\/existe\/chrome/);
+});
+
+test('captura que falha não aceita PNG antigo: exit 1 e PNG removido', () => {
+  const d = geraBase();
+  const saida = join(d, 'cap');
+  mkdirSync(saida);
+  writeFileSync(join(saida, 'svg-escuro.png'), 'antigo');
+  const r = spawnSync('python3', [RENDER, join(d, '01-minimo.html'), '--saida', saida], { encoding: 'utf8', env: { ...process.env, DIAGRAMAS_VIVOS_CHROME: '/usr/bin/false' } });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /captura nao gerada/);
+  assert.equal(existsSync(join(saida, 'svg-escuro.png')), false);
 });
