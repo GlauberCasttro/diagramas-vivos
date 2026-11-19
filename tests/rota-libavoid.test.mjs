@@ -42,3 +42,28 @@ for (const fx of ['minimo.json', 'retorno.json', 'laco.json'])
       }
       assert.deepEqual(verificarGeometria(L), []);
     });
+
+import { pontuar } from '../scripts/lib/rota-libavoid.mjs';
+
+test('pontuar: candidato com diagonal pontua pior que um limpo', () => {
+  const L = (pontos) => ({
+    largura: 800, altura: 400, cabecalho: { y: 0, altura: 80 }, legenda: { y: 344, altura: 56 }, zonas: [],
+    nos: [{ id: 'a', x: 40, y: 100, w: 100, h: 72, linhasNome: ['A'], linhasDescricao: [] }],
+    arestas: [{ id: 'x', pontos }],
+  });
+  assert.equal(pontuar(L([[140, 136], [500, 136]])), 0);
+  assert.ok(pontuar(L([[140, 136], [500, 200]])) > 0);
+});
+
+test('resíduo é detectável: cards sobrepostos sem rota limpa deixam violações visíveis', async () => {
+  const d = { arestas: [{ id: 'x', de: 'a', para: 'b' }, { id: 'y', de: 'b', para: 'a' }] };
+  const no = (id, x) => ({ id, x, y: 100, w: 100, h: 72, linhasNome: [id], linhasDescricao: [] });
+  const base = {
+    largura: 800, altura: 400, cabecalho: { y: 0, altura: 80 }, legenda: { y: 344, altura: 56 }, zonas: [],
+    nos: [no('a', 100), no('b', 150)], // cards sobrepostos: nenhuma rota limpa existe
+    arestas: [{ id: 'x', pontos: [[200, 136], [200, 136]] }, { id: 'y', pontos: [[200, 136], [200, 136]] }],
+  };
+  const L = await rotearLibavoid(base, d);
+  assert.ok(pontuar(L) > 0, 'esperava violações residuais detectáveis por verificarGeometria');
+  assert.equal(verificarGeometria(L).length, pontuar(L));
+});

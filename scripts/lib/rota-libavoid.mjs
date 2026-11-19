@@ -61,6 +61,7 @@ function posicionarRotulo(rotulo, pontos, ocupados) {
     const a = pontos[i - 1], b = pontos[i];
     segs.push({ a, b, c: Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]) });
   }
+  if (segs.length === 0) return rotulo;
   segs.sort((s1, s2) => s2.c - s1.c);
   const livre = (r) => !ocupados.some((o) =>
     r.x < o.x + o.w - 0.5 && o.x < r.x + r.w - 0.5 && r.y < o.y + o.h - 0.5 && o.y < r.y + r.h - 0.5);
@@ -81,10 +82,19 @@ function posicionarRotulo(rotulo, pontos, ocupados) {
 }
 
 let carga = null;
-const carregar = () => (carga ??= AvoidLib.load());
+const carregar = () => (carga ??= AvoidLib.load().catch((e) => { carga = null; throw e; }));
 
 const TENTATIVAS = 10;
 
+// Pontuação de um candidato: nº de violações de verificarGeometria (diagonal, atravessa-no, sobreposicao,
+// rotulo-colide). Diagonais contam: se o libavoid falhar numa rota, displayRoute devolve reta diagonal.
+export const pontuar = (layout) => verificarGeometria(layout).length;
+
+/**
+ * Re-roteia as arestas com libavoid sobre as posições de nós do layout.
+ * ATENÇÃO: o resultado pode AINDA ter violações (é a melhor de várias tentativas, não uma garantia).
+ * Quem chama deve rodar verificarGeometria(resultado) e tratar o resíduo (a CLI sai com código 2).
+ */
 export async function rotearLibavoid(layout, diagrama) {
   const nos = new Map(layout.nos.map((n) => [n.id, n]));
   const arestasModelo = new Map(diagrama.arestas.map((a) => [a.id, a]));
@@ -128,7 +138,7 @@ export async function rotearLibavoid(layout, diagrama) {
       });
     }
     const candidato = rotearUma(Avoid, layout, roteaveis, arestasModelo, nos, lados, offsets);
-    const falhas = verificarGeometria(candidato).length;
+    const falhas = pontuar(candidato);
     if (!melhor || falhas < melhor.falhas) melhor = { candidato, falhas };
     if (falhas === 0) break;
   }
@@ -138,57 +148,61 @@ export async function rotearLibavoid(layout, diagrama) {
 function rotearUma(Avoid, layout, roteaveis, arestasModelo, nos, lados, offsets) {
   const flags = enumValue(Avoid, 'PolyLineRouting', 'RouterFlag') | enumValue(Avoid, 'OrthogonalRouting', 'RouterFlag');
   const router = new Avoid.Router(flags);
-  router.setRoutingParameter(enumValue(Avoid, 'segmentPenalty', 'RoutingParameter'), 50);
-  router.setRoutingParameter(enumValue(Avoid, 'crossingPenalty', 'RoutingParameter'), 2000);
-  router.setRoutingParameter(enumValue(Avoid, 'fixedSharedPathPenalty', 'RoutingParameter'), 2000);
-  router.setRoutingParameter(enumValue(Avoid, 'shapeBufferDistance', 'RoutingParameter'), CLEARANCE);
-  router.setRoutingParameter(enumValue(Avoid, 'idealNudgingDistance', 'RoutingParameter'), Math.max(CLEARANCE, MIN_GAP));
-  router.setRoutingOption(enumValue(Avoid, 'nudgeOrthogonalSegmentsConnectedToShapes', 'RoutingOption'), true);
-  router.setRoutingOption(enumValue(Avoid, 'nudgeSharedPathsWithCommonEndPoint', 'RoutingOption'), true);
+  if (typeof router.delete !== 'function') throw new Error('libavoid-js: Router.delete ausente; API incompatível');
+  try {
+    router.setRoutingParameter(enumValue(Avoid, 'segmentPenalty', 'RoutingParameter'), 50);
+    router.setRoutingParameter(enumValue(Avoid, 'crossingPenalty', 'RoutingParameter'), 2000);
+    router.setRoutingParameter(enumValue(Avoid, 'fixedSharedPathPenalty', 'RoutingParameter'), 2000);
+    router.setRoutingParameter(enumValue(Avoid, 'shapeBufferDistance', 'RoutingParameter'), CLEARANCE);
+    router.setRoutingParameter(enumValue(Avoid, 'idealNudgingDistance', 'RoutingParameter'), Math.max(CLEARANCE, MIN_GAP));
+    router.setRoutingOption(enumValue(Avoid, 'nudgeOrthogonalSegmentsConnectedToShapes', 'RoutingOption'), true);
+    router.setRoutingOption(enumValue(Avoid, 'nudgeSharedPathsWithCommonEndPoint', 'RoutingOption'), true);
 
-  layout.nos.forEach((n, i) => {
-    new Avoid.ShapeRef(router, new Avoid.Rectangle(new Avoid.Point(n.x, n.y), new Avoid.Point(n.x + n.w, n.y + n.h)), i + 1);
-  });
+    layout.nos.forEach((n, i) => {
+      new Avoid.ShapeRef(router, new Avoid.Rectangle(new Avoid.Point(n.x, n.y), new Avoid.Point(n.x + n.w, n.y + n.h)), i + 1);
+    });
 
-  const rotas = roteaveis.map((a) => {
-    const m = arestasModelo.get(a.id);
-    const { ls, lt } = lados.get(a.id);
-    const ps = makePort(nos.get(m.de), ls, offsets.get(`${a.id}|s`));
-    const pt = makePort(nos.get(m.para), lt, offsets.get(`${a.id}|t`));
-    const conn = new Avoid.ConnRef(router, new Avoid.ConnEnd(new Avoid.Point(...ps.outside)), new Avoid.ConnEnd(new Avoid.Point(...pt.outside)));
-    // setRoutingType exige o objeto do enum (passar o número vira polilinha, com diagonais).
-    conn.setRoutingType(Avoid.ConnType.ConnType_Orthogonal);
-    conn.setHateCrossings(true);
-    return { id: a.id, ps, pt, conn };
-  });
+    const rotas = roteaveis.map((a) => {
+      const m = arestasModelo.get(a.id);
+      const { ls, lt } = lados.get(a.id);
+      const ps = makePort(nos.get(m.de), ls, offsets.get(`${a.id}|s`));
+      const pt = makePort(nos.get(m.para), lt, offsets.get(`${a.id}|t`));
+      const conn = new Avoid.ConnRef(router, new Avoid.ConnEnd(new Avoid.Point(...ps.outside)), new Avoid.ConnEnd(new Avoid.Point(...pt.outside)));
+      // setRoutingType exige o objeto do enum (passar o número vira polilinha, com diagonais).
+      conn.setRoutingType(Avoid.ConnType.ConnType_Orthogonal);
+      conn.setHateCrossings(true);
+      return { id: a.id, ps, pt, conn };
+    });
 
-  router.processTransaction();
+    router.processTransaction();
 
-  const novos = new Map();
-  for (const r of rotas) {
-    const dr = r.conn.displayRoute();
-    const rt = dr.ps ?? dr;
-    const at = rt.get_ps?.bind(rt) ?? rt.get?.bind(rt);
-    if (!at) throw new Error(`${r.id}: API de rota do libavoid-js não suportada`);
-    const roteados = Array.from({ length: rt.size() }, (_, i) => { const p = at(i); return [p.x, p.y]; });
-    novos.set(r.id, simplificar(dedup([r.ps.boundary, ...roteados, r.pt.boundary])));
-  }
-
-  // Rótulos: cards e rótulos já posicionados são obstáculos. Laços mantêm o rótulo do ELK.
-  const ocupados = layout.nos.map((n) => ({ x: n.x, y: n.y, w: n.w, h: n.h }));
-  for (const a of layout.arestas) {
-    if (a.rotulo && !novos.has(a.id)) ocupados.push({ x: a.rotulo.x, y: a.rotulo.y, w: a.rotulo.w, h: a.rotulo.h });
-  }
-  const arestas = layout.arestas.map((a) => {
-    const pontos = novos.get(a.id);
-    if (!pontos) return a; // laço: mantém os pontos do ELK
-    const saida = { ...a, pontos };
-    if (a.rotulo) {
-      saida.rotulo = posicionarRotulo(a.rotulo, pontos, ocupados);
-      ocupados.push({ x: saida.rotulo.x, y: saida.rotulo.y, w: saida.rotulo.w, h: saida.rotulo.h ?? 0 });
+    const novos = new Map();
+    for (const r of rotas) {
+      const dr = r.conn.displayRoute();
+      const rt = dr.ps ?? dr;
+      const at = rt.get_ps?.bind(rt) ?? rt.get?.bind(rt);
+      if (!at) throw new Error(`${r.id}: API de rota do libavoid-js não suportada`);
+      const roteados = Array.from({ length: rt.size() }, (_, i) => { const p = at(i); return [p.x, p.y]; });
+      novos.set(r.id, simplificar(dedup([r.ps.boundary, ...roteados, r.pt.boundary])));
     }
-    return saida;
-  });
-  router.delete?.();
-  return { ...layout, arestas };
+
+    // Rótulos: cards e rótulos já posicionados são obstáculos. Laços mantêm o rótulo do ELK.
+    const ocupados = layout.nos.map((n) => ({ x: n.x, y: n.y, w: n.w, h: n.h }));
+    for (const a of layout.arestas) {
+      if (a.rotulo && !novos.has(a.id)) ocupados.push({ x: a.rotulo.x, y: a.rotulo.y, w: a.rotulo.w, h: a.rotulo.h });
+    }
+    const arestas = layout.arestas.map((a) => {
+      const pontos = novos.get(a.id);
+      if (!pontos) return a; // laço: mantém os pontos do ELK
+      const saida = { ...a, pontos };
+      if (a.rotulo) {
+        saida.rotulo = posicionarRotulo(a.rotulo, pontos, ocupados);
+        ocupados.push({ x: saida.rotulo.x, y: saida.rotulo.y, w: saida.rotulo.w, h: saida.rotulo.h ?? 0 });
+      }
+      return saida;
+    });
+    return { ...layout, arestas };
+  } finally {
+    router.delete();
+  }
 }
