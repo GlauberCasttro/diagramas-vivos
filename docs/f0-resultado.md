@@ -46,19 +46,20 @@ Adaptações (registradas para não passarem por fidelidade):
 
 ## Números
 
-Saídas versionadas: `--roteador elk --direcao DOWN`.
+Saídas versionadas: `--roteador elk --direcao DOWN`. Números regerados na revisão final (arestas com cantos
+arredondados, spec §7.4: +250 a +350 B por SVG; canvas e violações iguais).
 
 | Fixture | Direção | Violações ELK | Violações libavoid | SVG (B) | HTML (B) | Canvas | Avisos de cobertura |
 |---|---|---|---|---|---|---|---|
-| deploy | DOWN (versionado) | 0 | 0 | 79 753 | 102 356 | 1596 × 1904 | `→` |
-| deploy | RIGHT | 0 | 0 | 79 704 | 102 150 | 3160 × 949 | `→` |
-| fluxo-card | DOWN (versionado) | 0 | 0 | 84 735 | 109 395 | 1992 × 3969 | `→` |
-| fluxo-card | RIGHT | 0 | 0 | 84 737 | 108 912 | 6805 × 1045 | `→` |
-| skill | DOWN (versionado) | 0 | 0 | 81 588 | 104 989 | 1450 × 2615 | `≤`, `→` |
-| skill | RIGHT | 0 | 0 | 81 521 | 104 563 | 4388 × 829 | `≤`, `→` |
+| deploy | DOWN (versionado) | 0 | 0 | 80 005 | 102 671 | 1596 × 1904 | `→` |
+| deploy | RIGHT | 0 | 0 | 79 948 | 102 457 | 3160 × 949 | `→` |
+| fluxo-card | DOWN (versionado) | 0 | 0 | 85 079 | 109 802 | 1992 × 3969 | `→` |
+| fluxo-card | RIGHT | 0 | 0 | 85 205 | 109 443 | 6805 × 1045 | `→` |
+| skill | DOWN (versionado) | 0 | 0 | 81 916 | 105 380 | 1450 × 2615 | `≤`, `→` |
+| skill | RIGHT | 0 | 0 | 81 857 | 104 962 | 4388 × 829 | `≤`, `→` |
 
-Com libavoid os bytes variam menos de 1 KB (deploy DOWN 79 881 / 102 490; fluxo-card DOWN 85 489 / 110 407;
-skill DOWN 81 745 / 105 182). Limites: SVG < 153 600 B, HTML < 307 200 B. Folga: SVG usa ~55%, HTML ~36%.
+Com libavoid os bytes variam até ~2,4 KB (deploy DOWN 80 377 / 103 049; fluxo-card DOWN 87 209 / 112 190;
+skill DOWN 82 369 / 105 869). Limites: SVG < 153 600 B, HTML < 307 200 B. Folga: SVG usa ~55%, HTML ~36%.
 A maior parte do SVG são as fontes woff2 inteiras embutidas (decisão da F0; subset fica para a F1).
 
 Avisos de cobertura: `→` (U+2192) aparece nos rótulos de retorno copiados da origem; `≤` (U+2264) na descrição
@@ -124,6 +125,7 @@ node scripts/gerar.mjs exemplos/deploy/diagram.json --saida exemplos/deploy --no
 node scripts/gerar.mjs exemplos/fluxo-card/diagram.json --saida exemplos/fluxo-card --nome 01-ciclo-de-card-do-board-ate-producao --direcao DOWN
 node scripts/gerar.mjs exemplos/skill/diagram.json --saida exemplos/skill --nome 01-como-a-skill-gera-um-diagrama --direcao DOWN
 python3 scripts/render_check.py exemplos/<nome>/01-*.html   # capturas em <stem>-capturas/ (fora do git)
+                                                            # svg-*, repouso-*, passo-NN-* (escuro/claro)
 ```
 
 Trocar `--roteador libavoid` dá o ramo B; `--direcao RIGHT` dá a versão horizontal.
