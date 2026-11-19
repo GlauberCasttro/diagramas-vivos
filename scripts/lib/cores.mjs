@@ -1,3 +1,4 @@
+// Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
 // Cores dos papéis (espelhadas em assets/tokens.css como --p-*) e razão de contraste WCAG 2.x.
 // Escuro: tokens do floorplan. Claro: escolhidos para >= 4.5:1 sobre o --bg claro do floorplan
 // (feliz = --recent claro, memoria = --k-http claro, neutro = --text-3 claro; gate e externo escurecidos).

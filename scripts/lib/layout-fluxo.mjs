@@ -1,3 +1,4 @@
+// Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
 // Layout da gramática "fluxo" com elkjs (layered + ORTHOGONAL), rodado no Node na geração.
 // Zonas viram nós compostos (INCLUDE_CHILDREN). Saída: coordenadas absolutas, com o cabeçalho
 // reservado no topo e a legenda no rodapé.

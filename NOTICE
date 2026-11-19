@@ -1,8 +1,11 @@
 diagramas-vivos
 Componentes de terceiros:
 
-- floorplan (MIT) - (c) 2026 Hayden Smith. Base do visual e das fontes empacotadas.
+- floorplan (MIT) - (c) 2026 Hayden Smith. Base do visual, dos espaçamentos do layout e das fontes
+  empacotadas. Licença em licenses/floorplan-MIT.txt. Arquivos derivados levam o cabeçalho
+  "Portions derived from floorplan (MIT) (c) 2026 Hayden Smith".
 - Inter (SIL OFL 1.1) - fonte em assets/fonts/, licença em inter-LICENSE.txt.
 - JetBrains Mono (SIL OFL 1.1) - fonte em assets/fonts/, licença em jetbrains-mono-LICENSE.txt.
 - elkjs (EPL-2.0) - usado apenas pelos scripts de geração, não embutido na saída.
 - libavoid-js (LGPL-2.1+) - usado apenas pelos scripts de geração, não embutido na saída.
+- fontkit (MIT) - usado apenas pelos scripts de geração (medição de texto), não embutido na saída.

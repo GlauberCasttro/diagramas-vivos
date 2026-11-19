@@ -1,3 +1,4 @@
+// Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
 // Regras puras do passo a passo, sem DOM. Importado pelos testes (node) e embutido no HTML antes de
 // assets/stepper.js (html.mjs remove as palavras "export" ao embutir).
 
