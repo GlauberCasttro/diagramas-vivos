@@ -1,0 +1,32 @@
+{
+  "versao": 1,
+  "tipo": 1,
+  "gramatica": "fluxo",
+  "titulo": "Entrega com retorno",
+  "subtitulo": "Falha na verificação volta para a construção",
+  "zonas": [
+    { "id": "dev", "nome": "Desenvolvimento" },
+    { "id": "ent", "nome": "Entrega" }
+  ],
+  "nos": [
+    { "id": "pedido", "nome": "Pedido", "descricao": "Demanda chega pelo quadro", "papel": "neutro", "zona": "dev" },
+    { "id": "build", "nome": "Construção", "descricao": "Compila e empacota o artefato", "papel": "feliz", "zona": "dev" },
+    { "id": "testes", "nome": "Testes", "descricao": "Roda a suíte completa", "papel": "neutro", "zona": "dev" },
+    { "id": "gate", "nome": "Verificação", "descricao": "Revisor cético aprova ou devolve", "papel": "gate", "zona": "ent" },
+    { "id": "deploy", "nome": "Publicação", "descricao": "Vai para produção", "papel": "feliz", "zona": "ent" }
+  ],
+  "arestas": [
+    { "id": "pedido-build", "de": "pedido", "para": "build", "papel": "sequencia" },
+    { "id": "build-testes", "de": "build", "para": "testes", "papel": "feliz" },
+    { "id": "testes-gate", "de": "testes", "para": "gate", "papel": "feliz" },
+    { "id": "gate-deploy", "de": "gate", "para": "deploy", "papel": "feliz", "rotulo": "aprovado" },
+    { "id": "gate-build", "de": "gate", "para": "build", "papel": "retorno", "rotulo": "devolvido" }
+  ],
+  "flows": [
+    { "id": "f1", "titulo": "Caminho feliz", "passos": [
+      { "ref": "pedido", "nota": "chega" },
+      { "ref": "pedido-build", "nota": "segue" },
+      { "ref": "gate-build", "nota": "volta" }
+    ] }
+  ]
+}
