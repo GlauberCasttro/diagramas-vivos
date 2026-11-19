@@ -226,3 +226,55 @@ for (const direcao of ['RIGHT', 'DOWN'])
     ortogonal(L);
     assert.deepEqual(verificarGeometria(L), []);
   });
+
+test('verificarGeometria: rótulo-cruzado (aresta alheia atravessa o rótulo; a própria não conta)', () => {
+  const L = base();
+  L.arestas.push({ id: 'x', pontos: [[300, 136], [500, 136]], rotulo: { x: 370, y: 124, w: 60, h: 24, linhas: ['oi'] } });
+  assert.deepEqual(verificarGeometria(L), []);
+  L.arestas.push({ id: 'y', pontos: [[400, 90], [400, 250]] });
+  assert.ok(verificarGeometria(L).some((e) => e.tipo === 'rotulo-cruzado' && e.aresta === 'x' && e.alvo === 'y'));
+  // encostar na borda do rótulo não é cruzar
+  L.arestas[1].pontos = [[430, 90], [430, 250]];
+  assert.ok(!verificarGeometria(L).some((e) => e.tipo === 'rotulo-cruzado'));
+});
+
+// Rótulos que não cabem no vão forçam a passada com rótulos no ELK (modoRotulos = 'elk').
+for (const direcao of ['RIGHT', 'DOWN'])
+  test(`requisicao com rótulos longos ${direcao}: cai no ELK, voltas certas, geometria limpa`, async () => {
+    const d = ler('requisicao.json');
+    for (const a of d.arestas) {
+      a.rotulo = `rótulo comprido da aresta ${a.id} para não caber`;
+      if (a.resposta) a.resposta = 'r'.repeat(10) + ' resposta longa de quarenta'.slice(0, 30);
+    }
+    assert.deepEqual(validar(d).erros, []);
+    const L = await layoutFluxo(d, fontes, { direcao });
+    assert.equal(L.modoRotulos, 'elk');
+    const N = new Map(L.nos.map((n) => [n.id, n]));
+    for (const a of d.arestas.filter((x) => x.resposta)) {
+      const v = L.arestas.find((x) => x.id === `${a.id}~volta`);
+      assert.ok(naBorda(v.pontos[0], N.get(a.para)), `${v.id}: início fora de ${a.para}`);
+      assert.ok(naBorda(v.pontos.at(-1), N.get(a.de)), `${v.id}: fim fora de ${a.de}`);
+      assert.ok(v.rotulo && v.rotulo.linhas.length >= 1);
+    }
+    for (const a of L.arestas) assert.ok(a.rotulo, `${a.id} sem rótulo`);
+    ortogonal(L);
+    assert.deepEqual(verificarGeometria(L), []);
+  });
+
+test('requisicao: passada compacta (modoRotulos = compacto)', async () => {
+  const L = await layoutFluxo(ler('requisicao.json'), fontes, { direcao: 'RIGHT' });
+  assert.equal(L.modoRotulos, 'compacto');
+});
+
+// Pílula montada na borda tracejada da zona é o último recurso (só quando não cabe em outro lugar).
+const montaBorda = (r, z) => {
+  const cx = (x) => x > r.x && x < r.x + r.w && r.y < z.y + z.h && r.y + r.h > z.y;
+  const cy = (y) => y > r.y && y < r.y + r.h && r.x < z.x + z.w && r.x + r.w > z.x;
+  return cx(z.x) || cx(z.x + z.w) || cy(z.y) || cy(z.y + z.h);
+};
+for (const [fx, direcao] of [['retorno.json', 'RIGHT'], ['retorno.json', 'DOWN'], ['requisicao.json', 'DOWN']])
+  test(`${fx} ${direcao}: nenhuma pílula montada na borda de zona`, async () => {
+    const L = await layoutFluxo(ler(fx), fontes, { direcao });
+    for (const a of L.arestas.filter((x) => x.rotulo))
+      for (const z of L.zonas) assert.ok(!montaBorda(a.rotulo, z), `${a.id} monta na borda de ${z.id}`);
+  });

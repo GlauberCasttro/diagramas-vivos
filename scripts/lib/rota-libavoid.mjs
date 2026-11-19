@@ -6,6 +6,7 @@
 // termina exatamente na borda do card); laços (de === para) mantêm os pontos do ELK.
 import { AvoidLib } from 'libavoid-js';
 import { ROTULO_LINHA, verificarGeometria } from './geometria.mjs';
+import { SUFIXO_VOLTA } from './layout-fluxo.mjs';
 
 const CLEARANCE = 8;
 const MIN_GAP = 4;
@@ -52,9 +53,11 @@ function enumValue(Avoid, flat, group) {
   return typeof v === 'number' ? v : v.value;
 }
 
-// Rótulo no ponto médio do maior segmento, ao lado da linha. Tenta primeiro esse segmento (acima/abaixo se
-// horizontal, direita/esquerda se vertical) e, se colidir com card ou outro rótulo, os demais por tamanho.
-function posicionarRotulo(rotulo, pontos, ocupados) {
+// Rótulo ao lado da linha (acima/abaixo se horizontal, direita/esquerda se vertical) ou, por último, em
+// cima dela, deslizando do meio do segmento para as pontas, do maior segmento para o menor. Recusa
+// posição que colida com card, outro rótulo ou que uma aresta alheia atravesse; sem posição livre, fica
+// a primeira candidata (e verificarGeometria acusa).
+function posicionarRotulo(rotulo, pontos, ocupados, alheias = []) {
   const w = rotulo.w ?? 0, h = rotulo.h ?? rotulo.linhas.length * ROTULO_LINHA;
   const segs = [];
   for (let i = 1; i < pontos.length; i++) {
@@ -63,15 +66,26 @@ function posicionarRotulo(rotulo, pontos, ocupados) {
   }
   if (segs.length === 0) return rotulo;
   segs.sort((s1, s2) => s2.c - s1.c);
+  // Livre: não sobrepõe card/rótulo e nenhuma aresta alheia passa por dentro (regra rotulo-cruzado).
   const livre = (r) => !ocupados.some((o) =>
-    r.x < o.x + o.w - 0.5 && o.x < r.x + r.w - 0.5 && r.y < o.y + o.h - 0.5 && o.y < r.y + r.h - 0.5);
+    r.x < o.x + o.w - 0.5 && o.x < r.x + r.w - 0.5 && r.y < o.y + o.h - 0.5 && o.y < r.y + r.h - 0.5) &&
+    !alheias.some((pts) => pts.some((q, i) => i > 0 &&
+      Math.max(q[0], pts[i - 1][0]) > r.x + 0.5 && Math.min(q[0], pts[i - 1][0]) < r.x + r.w - 0.5 &&
+      Math.max(q[1], pts[i - 1][1]) > r.y + 0.5 && Math.min(q[1], pts[i - 1][1]) < r.y + r.h - 0.5));
   let primeiro = null;
-  for (const { a, b } of segs) {
-    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+  // Do meio do segmento para as pontas, de 2 em 2 px: ao lado da linha e, por último, em cima dela
+  // (a pílula cobre só a própria aresta).
+  for (const { a, b, c } of segs) {
     const horiz = Math.abs(a[1] - b[1]) <= Math.abs(a[0] - b[0]);
-    const cand = horiz
-      ? [{ x: mx - w / 2, y: my - h - 2 }, { x: mx - w / 2, y: my + 2 }]
-      : [{ x: mx + 2, y: my - h / 2 }, { x: mx - w - 2, y: my - h / 2 }];
+    const ds = [];
+    for (let k = 0; k <= c / 2; k += 2) ds.push(c / 2 - k, ...(k ? [c / 2 + k] : []));
+    const cand = ds.flatMap((d) => {
+      const f = c ? d / c : 0.5;
+      const mx = a[0] + f * (b[0] - a[0]), my = a[1] + f * (b[1] - a[1]);
+      return horiz
+        ? [{ x: mx - w / 2, y: my - h - 2 }, { x: mx - w / 2, y: my + 2 }, { x: mx - w / 2, y: my - h / 2 }]
+        : [{ x: mx + 2, y: my - h / 2 }, { x: mx - w - 2, y: my - h / 2 }, { x: mx - w / 2, y: my - h / 2 }];
+    });
     for (const c of cand) {
       const r = { ...rotulo, x: c.x, y: c.y };
       primeiro ??= r;
@@ -97,7 +111,12 @@ export const pontuar = (layout) => verificarGeometria(layout).length;
  */
 export async function rotearLibavoid(layout, diagrama) {
   const nos = new Map(layout.nos.map((n) => [n.id, n]));
-  const arestasModelo = new Map(diagrama.arestas.map((a) => [a.id, a]));
+  // A volta (`<id>~volta`, só no Layout) é uma conexão própria, do `para` ao `de` da aresta do modelo.
+  const arestasModelo = new Map();
+  for (const a of diagrama.arestas) {
+    arestasModelo.set(a.id, a);
+    if (a.resposta) arestasModelo.set(`${a.id}${SUFIXO_VOLTA}`, { id: `${a.id}${SUFIXO_VOLTA}`, de: a.para, para: a.de });
+  }
   const roteaveis = layout.arestas.filter((a) => {
     const m = arestasModelo.get(a.id);
     return m && m.de !== m.para;
@@ -196,7 +215,8 @@ function rotearUma(Avoid, layout, roteaveis, arestasModelo, nos, lados, offsets)
       if (!pontos) return a; // laço: mantém os pontos do ELK
       const saida = { ...a, pontos };
       if (a.rotulo) {
-        saida.rotulo = posicionarRotulo(a.rotulo, pontos, ocupados);
+        const alheias = layout.arestas.filter((b) => b.id !== a.id).map((b) => novos.get(b.id) ?? b.pontos);
+        saida.rotulo = posicionarRotulo(a.rotulo, pontos, ocupados, alheias);
         ocupados.push({ x: saida.rotulo.x, y: saida.rotulo.y, w: saida.rotulo.w, h: saida.rotulo.h ?? 0 });
       }
       return saida;

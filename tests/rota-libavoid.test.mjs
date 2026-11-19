@@ -14,7 +14,7 @@ const naBorda = (p, n, tol = 1) =>
   (Math.abs(p[0] - n.x) <= tol || Math.abs(p[0] - n.x - n.w) <= tol ||
     Math.abs(p[1] - n.y) <= tol || Math.abs(p[1] - n.y - n.h) <= tol);
 
-for (const fx of ['minimo.json', 'retorno.json', 'laco.json'])
+for (const fx of ['minimo.json', 'retorno.json', 'laco.json', 'requisicao.json'])
   for (const direcao of ['RIGHT', 'DOWN'])
     test(`${fx} ${direcao}: nós/zonas intactos, ortogonal, bordas de→para, geometria limpa`, async () => {
       const d = ler(fx);
@@ -39,6 +39,14 @@ for (const fx of ['minimo.json', 'retorno.json', 'laco.json'])
           assert.equal(la.rotulo.w, lb.rotulo.w);
           assert.equal(la.rotulo.h, lb.rotulo.h);
         }
+      }
+      for (const a of d.arestas.filter((x) => x.resposta)) {
+        const v = L.arestas.find((x) => x.id === `${a.id}~volta`);
+        const vb = base.arestas.find((x) => x.id === v.id);
+        assert.notDeepEqual(v.pontos, vb.pontos, `${v.id}: volta não foi re-roteada`);
+        assert.ok(naBorda(v.pontos[0], N.get(a.para)), `${v.id}: início fora de ${a.para}`);
+        assert.ok(naBorda(v.pontos.at(-1), N.get(a.de)), `${v.id}: fim fora de ${a.de}`);
+        assert.deepEqual(v.rotulo.linhas, vb.rotulo.linhas);
       }
       assert.deepEqual(verificarGeometria(L), []);
     });

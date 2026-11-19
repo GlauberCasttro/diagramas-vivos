@@ -94,6 +94,13 @@ function colineares(a, b) {
   return hi - lo > EPSILON;
 }
 
+// Segmento ortogonal passa pelo interior do retângulo {x, y, width, height} (folga EPSILON nas bordas).
+function segmentoCruzaRet(s, r) {
+  const x0 = Math.min(s.start[0], s.end[0]), x1 = Math.max(s.start[0], s.end[0]);
+  const y0 = Math.min(s.start[1], s.end[1]), y1 = Math.max(s.start[1], s.end[1]);
+  return x1 > r.x + EPSILON && x0 < r.x + r.width - EPSILON && y1 > r.y + EPSILON && y0 < r.y + r.height - EPSILON;
+}
+
 export function verificarGeometria(layout) {
   const v = [];
   const arestas = layout.arestas || [];
@@ -119,5 +126,12 @@ export function verificarGeometria(layout) {
     for (let j = i + 1; j < rotulos.length; j++)
       if (retSobrepoe(r, rotulos[j].r)) v.push({ tipo: 'rotulo-colide', aresta: id, alvo: rotulos[j].id });
   });
+  // Rótulo é pílula com fundo: uma aresta alheia que passa por dentro dele some sob a pílula.
+  // Encostar na borda (até EPSILON) não conta; a própria aresta do rótulo pode passar por baixo.
+  for (const { id, r } of rotulos)
+    for (const b of arestas) {
+      if (b.id === id) continue;
+      if (segmentos(b.pontos).some((s) => segmentoCruzaRet(s, r))) v.push({ tipo: 'rotulo-cruzado', aresta: id, alvo: b.id });
+    }
   return v;
 }

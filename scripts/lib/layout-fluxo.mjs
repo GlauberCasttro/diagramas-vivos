@@ -184,10 +184,10 @@ export async function layoutFluxo(diagrama, fontes, opcoes = {}) {
     };
   };
 
-  if (rotulos.size === 0) return montar(false);
+  // `modoRotulos` diz qual passada valeu: 'compacto' (rótulos sobre as arestas) ou 'elk'.
   const compacto = await montar(false);
-  if (porRotulosNasArestas(compacto, rotulos, nomesZona, direcao)) return compacto;
-  return montar(true);
+  if (porRotulosNasArestas(compacto, rotulos, nomesZona, direcao)) return { ...compacto, modoRotulos: 'compacto' };
+  return { ...(await montar(true)), modoRotulos: 'elk' };
 }
 
 // ---- Rótulos sobre a própria aresta (passada compacta) ----
@@ -214,8 +214,8 @@ function centros(p, s, inicio) {
 }
 
 // Põe cada rótulo (pílula com fundo) centrado num trecho da própria aresta, dos trechos no sentido do
-// fluxo para os demais e do mais longo para o mais curto, deslizando ao longo dele (ver `centros`); o rótulo não pode encostar em card, em outro
-// rótulo, no nome de uma zona nem em aresta alheia, e fica entre o cabeçalho e a legenda. Muta `layout` e devolve true
+// fluxo para os demais e do mais longo para o mais curto, deslizando ao longo dele (ver `centros`); o rótulo
+// não pode encostar em card, em outro rótulo, no nome nem na borda de uma zona, nem em aresta alheia, e fica entre o cabeçalho e a legenda. Muta `layout` e devolve true
 // se todos couberam; false deixa a decisão (refazer com rótulos no ELK) para quem chamou.
 function porRotulosNasArestas(layout, rotulos, nomesZona, direcao) {
   const larguraNome = new Map(nomesZona.map((z) => [z.id, z.w]));
@@ -224,14 +224,20 @@ function porRotulosNasArestas(layout, rotulos, nomesZona, direcao) {
     ...layout.zonas.map((z) => ({ x: z.x, y: z.y, w: larguraNome.get(z.id), h: ZONA_PAD.topo })),
   ];
   const topo = layout.cabecalho.y + layout.cabecalho.altura;
+  // Borda tracejada das zonas: preferência por rótulo. Primeiro sem montar nela; se não couber em lugar
+  // nenhum, aceita montar (a pílula, com fundo, só interrompe o tracejado).
+  const bordas = layout.zonas.flatMap(({ x, y, w, h }) => [
+    [[x, y], [x + w, y]], [[x + w, y], [x + w, y + h]], [[x, y + h], [x + w, y + h]], [[x, y], [x, y + h]],
+  ]);
   for (const a of layout.arestas) {
     const q = rotulos.get(a.id);
     if (!q) continue;
     const alheias = layout.arestas.filter((b) => b !== a);
-    const livre = (r) =>
+    const livre = (r, evitarBordas) =>
       r.x >= 0 && r.x + r.w <= layout.largura && r.y >= topo && r.y + r.h <= layout.legenda.y &&
       !ocupados.some((o) => sobrepoe(r, o, FOLGA_ROTULO)) &&
-      !alheias.some((b) => b.pontos.some((p, i) => i > 0 && cruzaSegmento(r, b.pontos[i - 1], p, FOLGA_LINHA)));
+      !alheias.some((b) => b.pontos.some((p, i) => i > 0 && cruzaSegmento(r, b.pontos[i - 1], p, FOLGA_LINHA))) &&
+      !(evitarBordas && bordas.some(([p, q]) => cruzaSegmento(r, p, q, FOLGA_LINHA)));
     const trechos = [];
     for (let i = 1; i < a.pontos.length; i++) {
       const [p, s] = [a.pontos[i - 1], a.pontos[i]];
@@ -243,14 +249,17 @@ function porRotulosNasArestas(layout, rotulos, nomesZona, direcao) {
     let achado = null;
     // Em cima da linha primeiro (a pílula cobre a aresta, como na referência); só então encostado ao
     // lado dela, a FOLGA_LADO px.
-    for (const lado of [0, 1, -1]) {
-      for (const { p, s } of trechos) {
-        const horizontal = Math.abs(s[1] - p[1]) < Math.abs(s[0] - p[0]);
-        const ox = horizontal ? 0 : lado * (q.w / 2 + FOLGA_LADO);
-        const oy = horizontal ? lado * (q.h / 2 + FOLGA_LADO) : 0;
-        for (const [cx, cy] of centros(p, s, q.inicio)) {
-          const r = { x: cx + ox - q.w / 2, y: cy + oy - q.h / 2, w: q.w, h: q.h };
-          if (livre(r)) { achado = r; break; }
+    for (const evitarBordas of [true, false]) {
+      for (const lado of [0, 1, -1]) {
+        for (const { p, s } of trechos) {
+          const horizontal = Math.abs(s[1] - p[1]) < Math.abs(s[0] - p[0]);
+          const ox = horizontal ? 0 : lado * (q.w / 2 + FOLGA_LADO);
+          const oy = horizontal ? lado * (q.h / 2 + FOLGA_LADO) : 0;
+          for (const [cx, cy] of centros(p, s, q.inicio)) {
+            const r = { x: cx + ox - q.w / 2, y: cy + oy - q.h / 2, w: q.w, h: q.h };
+            if (livre(r, evitarBordas)) { achado = r; break; }
+          }
+          if (achado) break;
         }
         if (achado) break;
       }
