@@ -49,7 +49,7 @@ improvise outra gramática.
 - **Ids** (zonas, nós, arestas, flows) casam `^[A-Za-z0-9_-]+$`: sem espaço, acento, ponto ou `~`.
 - `zonas` são opcionais; use só quando há camadas reais (Cliente, Borda, Serviços). Cerca de 8 a 20 nós.
 
-Exemplo completo, pequeno (cabe como `docs/diagramas/fonte/diagram.json`):
+Exemplo completo, pequeno, sem zonas, que gera 1624×735 (2,2:1) em RIGHT (cabe como `docs/diagramas/fonte/diagram.json`):
 
 ```json
 { "versao": 1, "tipo": 1, "gramatica": "fluxo", "titulo": "Criar pedido", "subtitulo": "Do usuário ao banco e de volta",
@@ -57,32 +57,42 @@ Exemplo completo, pequeno (cabe como `docs/diagramas/fonte/diagram.json`):
     {"id": "usuario", "nome": "Usuário", "descricao": "Faz o pedido pelo app.", "papel": "neutro", "icone": "pessoa"},
     {"id": "gateway", "nome": "API Gateway", "descricao": "Recebe e encaminha a chamada.", "papel": "feliz", "icone": "servico"},
     {"id": "pedidos", "nome": "Serviço de pedidos", "descricao": "Cria o pedido.", "papel": "feliz", "icone": "servico"},
-    {"id": "banco", "nome": "Banco de pedidos", "descricao": "Guarda o pedido.", "papel": "memoria", "icone": "banco", "selo": "SQL"}
+    {"id": "catalogo", "nome": "Catálogo", "descricao": "Preço e disponibilidade.", "papel": "neutro", "icone": "servico"},
+    {"id": "banco", "nome": "Banco de pedidos", "descricao": "Guarda o pedido.", "papel": "memoria", "icone": "banco", "selo": "SQL"},
+    {"id": "fila", "nome": "Fila de eventos", "descricao": "Publica pedido criado.", "papel": "neutro", "icone": "fila"},
+    {"id": "estoque", "nome": "Estoque", "descricao": "Saldo de cada item.", "papel": "neutro", "icone": "ferramenta"},
+    {"id": "cache", "nome": "Cache", "descricao": "Preços recentes.", "papel": "memoria", "icone": "documento"}
   ],
   "arestas": [
     {"id": "usuario-gateway", "de": "usuario", "para": "gateway", "papel": "feliz", "tipo": "chamada", "rotulo": "POST /pedidos", "resposta": "201 criado"},
     {"id": "gateway-pedidos", "de": "gateway", "para": "pedidos", "papel": "feliz", "tipo": "rpc", "resposta": "pedido criado"},
-    {"id": "pedidos-banco", "de": "pedidos", "para": "banco", "papel": "feliz", "tipo": "dados", "rotulo": "grava", "resposta": "id"}
+    {"id": "gateway-catalogo", "de": "gateway", "para": "catalogo", "papel": "sequencia", "tipo": "chamada"},
+    {"id": "pedidos-banco", "de": "pedidos", "para": "banco", "papel": "feliz", "tipo": "dados", "rotulo": "grava", "resposta": "id"},
+    {"id": "pedidos-fila", "de": "pedidos", "para": "fila", "papel": "sequencia", "tipo": "evento"},
+    {"id": "gateway-estoque", "de": "gateway", "para": "estoque", "papel": "sequencia", "tipo": "rpc"},
+    {"id": "catalogo-cache", "de": "catalogo", "para": "cache", "papel": "sequencia", "tipo": "dados"}
   ],
-  "flows": [{ "id": "criar", "titulo": "Criar pedido", "passos": [
-    {"ref": "usuario", "nota": "O usuário envia o pedido."},
-    {"ref": "usuario-gateway", "nota": "A chamada chega ao gateway."},
-    {"ref": "gateway-pedidos", "nota": "O gateway encaminha ao serviço."},
-    {"ref": "pedidos-banco", "nota": "O serviço grava o pedido."},
-    {"ref": "pedidos-banco", "sentido": "volta", "nota": "O banco devolve o id."},
-    {"ref": "gateway-pedidos", "sentido": "volta", "nota": "O serviço responde ao gateway."},
-    {"ref": "usuario-gateway", "sentido": "volta", "nota": "O usuário recebe 201."},
-    {"ref": "usuario", "nota": "Fim: pedido confirmado."}
-  ] }] }
+  "flows": [
+    {"id": "criar", "titulo": "Criar pedido", "passos": [{"ref": "usuario", "nota": "O usuário envia o pedido."}, {"ref": "usuario-gateway", "nota": "A chamada chega ao gateway."}, {"ref": "gateway-pedidos", "nota": "O gateway encaminha ao serviço."}, {"ref": "pedidos-banco", "nota": "O serviço grava o pedido."}, {"ref": "pedidos-banco", "sentido": "volta", "nota": "O banco devolve o id."}, {"ref": "pedidos-fila", "nota": "O serviço publica o evento."}, {"ref": "gateway-pedidos", "sentido": "volta", "nota": "O serviço responde ao gateway."}, {"ref": "usuario-gateway", "sentido": "volta", "nota": "O usuário recebe 201."}, {"ref": "usuario", "nota": "Fim: pedido confirmado."}]},
+    {"id": "preco", "titulo": "Consultar preço", "passos": [{"ref": "usuario-gateway", "nota": "O usuário consulta."}, {"ref": "gateway-catalogo", "nota": "O gateway pergunta ao catálogo."}]}
+  ] }
 ```
 
 ## Direção e proporção
 
 Padrão **`RIGHT`** (colunas da esquerda para a direita, cards de 300 px com 120 px entre colunas): é o
 formato compacto da referência visual. Mire numa proporção largura:altura entre **1 e 3** (ex.: 1204×628
-e 1846×796 nos exemplos agente e requisição). Passou de 3:1, divida o diagrama em dois ou agrupe nós em
-zonas; só use `--direcao DOWN` para uma cadeia longa e estreita (mais de ~6 etapas em linha) ou com muitos
-retornos.
+e 1846×796 nos exemplos agente e requisição). Uma cadeia pura de nós vira uma faixa larga e baixa; hubs com
+irmãos (um gateway com vários serviços ao lado) dão linhas e equilibram.
+
+**Zonas aumentam a largura em RIGHT.** Para fluxos de requisição prefira **sem zonas**: os ícones coloridos e
+os tipos de ligação já agrupam visualmente. Caso real: 10 nós com 4 zonas deu 4804×735 (6,5:1); o mesmo
+modelo sem zonas, 2464×688 (3,6:1) e bem mais legível; com zonas em DOWN, 1032×2187.
+
+**Depois de gerar, confira o canvas** (o `viewBox` do `.svg`, ou `bytes`/o SVG gerado). Se passar de 3:1, nesta
+ordem: (1) remova as zonas; (2) encurte a cadeia (hubs com irmãos em vez de nós em fila); (3) só então
+`--direcao DOWN`. Mantenha `bytes.svg` **abaixo de 150 KB**: é o limite para embutir o SVG inline em PRs
+(o CLI já acusa estouro com exit 2).
 
 ## Procedimento
 

@@ -43,6 +43,9 @@ no próprio SVG. Formato: `references/modelo.md`.
 ## Direção e proporção (`--direcao`)
 - Padrão **`RIGHT`**: colunas da esquerda para a direita, cards de 300 px, 120 px entre colunas. É o formato
   compacto da referência (`docs/referencia-visual/02-agente.svg`).
+- **Zonas aumentam a largura em RIGHT**: em requisições prefira sem zonas (ícones e tipos já agrupam). Caso real:
+  10 nós, 4 zonas = 4804 × 735 (6,5:1); sem zonas = 2464 × 688 (3,6:1); DOWN com zonas = 1032 × 2187. Acima de 3:1:
+  primeiro remova zonas, depois encurte a cadeia (hubs com irmãos), só então DOWN. Confira o `viewBox` após gerar.
 - Mire numa proporção largura:altura de **1 a 3**. Os exemplos `agente` (1204 × 628) e `requisicao`
   (1846 × 796) ficam nessa faixa. Cadeias muito longas em linha (a partir de ~8 etapas, ou com muitos
   retornos) passam de 5:1 em RIGHT (`fluxo-card` 7235 × 1114): divida em dois diagramas, agrupe em zonas, ou
