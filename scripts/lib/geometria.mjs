@@ -2,6 +2,10 @@
 // segmentDistance/segmentHitsRect/intervalGap portados de
 // ~/.claude/skills/diagramas-legais/scripts/route_edges.mjs:84-130 (mesma lógica; segmentos
 // {start:[x,y], end:[x,y]}, retângulos {x, y, width, height}).
+// Diferença em relação à origem: EPSILON = 0.5 (a origem usa 1e-6). O ELK devolve coordenadas
+// fracionárias (ex.: 229.333…; centros de porta em x.5) e a conversão para absoluto soma offsets
+// de pais, então pontos que deveriam ser colineares/na borda diferem por frações de pixel;
+// 0.5 é meio pixel, abaixo do que se vê no SVG e acima do ruído numérico.
 
 export const EPSILON = 0.5;
 // Métrica do rótulo de aresta (ESTILO.rotulo, 12px): altura de linha e folga interna.

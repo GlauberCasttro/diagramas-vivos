@@ -113,3 +113,46 @@ test('verificarGeometria: layout limpo vazio', () => {
   L.arestas.push({ id: 'x', pontos: [[300, 136], [500, 136]] });
   assert.deepEqual(verificarGeometria(L), []);
 });
+
+// Coordenadas: as Tasks 4-6 dependem de pontos absolutos que começam no card `de` e terminam no `para`.
+const naBorda = (p, n, tol = 1) =>
+  p[0] >= n.x - tol && p[0] <= n.x + n.w + tol && p[1] >= n.y - tol && p[1] <= n.y + n.h + tol &&
+  (Math.abs(p[0] - n.x) <= tol || Math.abs(p[0] - n.x - n.w) <= tol ||
+    Math.abs(p[1] - n.y) <= tol || Math.abs(p[1] - n.y - n.h) <= tol);
+
+// Distância de um retângulo {x,y,w,h} a um segmento ortogonal (0 se tocam).
+function distRetSeg(r, a, b) {
+  const gap = (lo, hi, s, e) => Math.max(0, Math.min(s, e) - hi, lo - Math.max(s, e));
+  return Math.hypot(gap(r.x, r.x + r.w, a[0], b[0]), gap(r.y, r.y + r.h, a[1], b[1]));
+}
+
+for (const fx of ['minimo.json', 'retorno.json', 'laco.json'])
+  for (const direcao of ['RIGHT', 'DOWN'])
+    test(`${fx} ${direcao}: pontas nas bordas de/para, rótulo junto da própria aresta`, async () => {
+      const d = ler(fx);
+      const L = await layoutFluxo(d, fontes, { direcao });
+      const N = new Map(L.nos.map((n) => [n.id, n]));
+      for (const a of d.arestas) {
+        const la = L.arestas.find((x) => x.id === a.id);
+        assert.ok(naBorda(la.pontos[0], N.get(a.de)), `${a.id}: início ${la.pontos[0]} fora da borda de ${a.de}`);
+        assert.ok(naBorda(la.pontos.at(-1), N.get(a.para)), `${a.id}: fim ${la.pontos.at(-1)} fora da borda de ${a.para}`);
+        if (la.rotulo) {
+          const r = la.rotulo;
+          const alturaLinha = r.h / r.linhas.length;
+          let min = Infinity;
+          for (let i = 1; i < la.pontos.length; i++) min = Math.min(min, distRetSeg(r, la.pontos[i - 1], la.pontos[i]));
+          assert.ok(min <= alturaLinha, `${a.id}: rótulo a ${min}px da própria aresta`);
+        }
+      }
+    });
+
+for (const direcao of ['RIGHT', 'DOWN'])
+  test(`laço ${direcao}: valida, ortogonal, geometria limpa`, async () => {
+    const d = ler('laco.json');
+    assert.deepEqual(validar(d).erros, []);
+    const L = await layoutFluxo(d, fontes, { direcao });
+    ortogonal(L);
+    assert.deepEqual(verificarGeometria(L), []);
+    const laco = L.arestas.find((a) => a.id === 'tenta-tenta');
+    assert.ok(laco.pontos.length >= 4, `laço com ${laco.pontos.length} pontos`);
+  });

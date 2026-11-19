@@ -1,0 +1,19 @@
+{
+  "versao": 1,
+  "tipo": 1,
+  "gramatica": "fluxo",
+  "titulo": "Laço de tentativa",
+  "nos": [
+    { "id": "pedido", "nome": "Pedido", "papel": "neutro" },
+    { "id": "tenta", "nome": "Tentativa", "descricao": "Repete até passar", "papel": "gate" },
+    { "id": "fim", "nome": "Fim", "papel": "feliz" }
+  ],
+  "arestas": [
+    { "id": "pedido-tenta", "de": "pedido", "para": "tenta", "papel": "sequencia" },
+    { "id": "tenta-tenta", "de": "tenta", "para": "tenta", "papel": "retorno", "rotulo": "de novo" },
+    { "id": "tenta-fim", "de": "tenta", "para": "fim", "papel": "feliz" }
+  ],
+  "flows": [
+    { "id": "f1", "titulo": "Laço", "passos": [{ "ref": "pedido", "nota": "chega" }, { "ref": "tenta-tenta", "nota": "repete" }] }
+  ]
+}
