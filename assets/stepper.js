@@ -90,20 +90,10 @@
     anim.beginElement?.();
   }
   function realcar(p) {
-    const nos = new Set(), arestas = [];
-    const a = D.arestas[p.ref];
-    if (a) { arestas.push(p.ref); nos.add(a.de); nos.add(a.para); }
-    else {
-      nos.add(p.ref);
-      // arestas que chegam ao nó vindas do nó do passo anterior (mesmo flow)
-      const ant = p.i > 0 ? p.flow.passos[p.i - 1].ref : null;
-      const deNo = ant == null ? null : D.arestas[ant] ? D.arestas[ant].para : ant;
-      if (deNo != null)
-        for (const [id, x] of Object.entries(D.arestas)) if (x.de === deNo && x.para === p.ref) arestas.push(id);
-    }
+    const { nos, arestas } = destaques(p.flow.passos, p.i, D.arestas); // assets/destaques.mjs
     for (const [id, g] of elNo) g.classList.add(nos.has(id) ? 'hl' : 'dim');
-    for (const [id, g] of elAresta) g.classList.add(arestas.includes(id) ? 'hl' : 'dim');
-    pulso(arestas[0]);
+    for (const [id, g] of elAresta) g.classList.add(arestas.has(id) ? 'hl' : 'dim');
+    pulso([...arestas][0]);
   }
 
   // ---------------- barra ----------------
@@ -151,7 +141,7 @@
   const proximo = () => { parar(); ir(atual + 1, true); };
   const anterior = () => { parar(); if (atual > 1) ir(atual - 1, true); };
   const sair = () => { parar(); ir(0, true); };
-  const passoDoHash = () => { const m = /^#passo=(\d+)$/.exec(location.hash); return m ? clamp(+m[1], 1, N) : 0; };
+  const passoAtualDoHash = () => passoDoHash(location.hash, N); // assets/destaques.mjs
 
   $('b-prox').onclick = proximo;
   $('b-ant').onclick = anterior;
@@ -170,7 +160,7 @@
     else if (ev.key === '+' || ev.key === '=') zoomPor(1.2);
     else if (ev.key === '-') zoomPor(0.83);
   });
-  addEventListener('hashchange', () => { const n = passoDoHash(); if (n !== atual) { parar(); ir(n, false); } });
+  addEventListener('hashchange', () => { const n = passoAtualDoHash(); if (n !== atual) { parar(); ir(n, false); } });
 
   // ---------------- pan / zoom ----------------
   palco.addEventListener('wheel', (ev) => {
@@ -212,5 +202,5 @@
   if (reduz.addEventListener) reduz.addEventListener('change', mudouMovimento); else if (reduz.addListener) reduz.addListener(mudouMovimento);
 
   rotularTema();
-  ir(passoDoHash(), false);
+  ir(passoAtualDoHash(), false);
 })();

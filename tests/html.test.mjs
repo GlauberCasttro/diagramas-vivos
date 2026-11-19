@@ -33,6 +33,9 @@ for (const nome of ['minimo.json', 'retorno.json', 'laco.json']) {
     const dados = dadosDe(html);
     assert.deepEqual(dados.flows, d.flows);
     assert.ok(html.includes(stepper.trim()), 'stepper embutido');
+    assert.ok(html.includes('function destaques('), 'regras do passo embutidas');
+    assert.ok(html.includes('function passoDoHash('), 'regra do hash embutida');
+    assert.ok(!/^export /m.test(html), 'sem export no script clássico');
     assert.ok(!/\/\*__[A-Z]+__\*\/|<!--__SVG__-->/.test(html), 'marcador não substituído');
     const semNs = html.replace(' xmlns="http://www.w3.org/2000/svg"', '');
     assert.ok(!semNs.includes('http://'), 'http://');

@@ -81,7 +81,8 @@ export function emitirHtml(diagrama, layout, svg) {
     '/*__CSS__*/': CSS,
     '<!--__SVG__-->': svg,
     '/*__DADOS__*/': jsonSeguro(dados),
-    '/*__STEPPER__*/': lerAsset('stepper.js').trim(),
+    // Regras puras (destaques.mjs, testadas em node) antes do stepper; "export" sai para o script clássico.
+    '/*__STEPPER__*/': lerAsset('destaques.mjs').replace(/^export /gm, '').trim() + '\n' + lerAsset('stepper.js').trim(),
   };
   const template = lerAsset('template.html');
   for (const marca of Object.keys(subst))
