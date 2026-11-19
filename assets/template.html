@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
+     Origem: floorplan/assets/viewer.html (script de tema :6-27, barra do flow :289-297). -->
+<script>
+/* Tema: roda antes de desenhar para não piscar a cor errada. "auto" segue o aparelho. */
+(() => {
+  const KEY = 'diagramas-vivos-tema', root = document.documentElement, mq = matchMedia('(prefers-color-scheme: light)');
+  let mem = 'auto';
+  const valid = (v) => v === 'auto' || v === 'light' || v === 'dark';
+  const get = () => { try { const v = localStorage.getItem(KEY); if (valid(v)) return v; } catch (e) {} return mem; };
+  const apply = () => {
+    const c = get();
+    root.setAttribute('data-theme', c === 'auto' ? (mq.matches ? 'light' : 'dark') : c);
+    window.dispatchEvent(new Event('diagramas-vivos-tema'));
+  };
+  apply();
+  if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply);
+  addEventListener('storage', (e) => { if (e.key === KEY || e.key === null) apply(); });
+  window.diagramasVivosTema = { get, set: (c) => {
+    if (!valid(c)) return;
+    mem = c; try { localStorage.setItem(KEY, c); } catch (e) {}
+    apply();
+  } };
+})();
+</script>
+<title>__TITULO__</title>
+<style>
+/*__TOKENS__*/
+/*__CSS__*/
+</style>
+</head>
+<body>
+<main id="palco" aria-label="Diagrama">
+<div id="vp">
+<!--__SVG__-->
+</div>
+</main>
+<div id="barra" class="painel" role="region" aria-label="Passo a passo" aria-live="polite">
+  <div class="ft">
+    <div class="fk" id="b-flow"></div>
+    <div id="b-passo"></div>
+    <div class="nota" id="b-nota"></div>
+    <div class="dots" id="b-dots" aria-hidden="true"></div>
+  </div>
+  <div class="botoes">
+    <button type="button" id="b-ant" aria-label="Passo anterior" title="Anterior (←)">&#8592;</button>
+    <button type="button" id="b-tocar" aria-label="Tocar" title="Tocar/pausar (Espaço)">&#9654;</button>
+    <button type="button" id="b-prox" aria-label="Próximo passo" title="Próximo (→)">&#8594;</button>
+    <button type="button" id="b-sair" aria-label="Sair do passo a passo" title="Sair (Esc)">&#10005;</button>
+  </div>
+</div>
+<div id="ctl" class="painel">
+  <button type="button" id="z-mais" aria-label="Aproximar" title="Aproximar">+</button>
+  <button type="button" id="z-menos" aria-label="Afastar" title="Afastar">&#8722;</button>
+  <button type="button" id="z-ajustar" aria-label="Ver tudo" title="Ver tudo">&#9633;</button>
+  <button type="button" id="b-tema" aria-label="Tema" title="Tema"></button>
+</div>
+<script type="application/json" id="dados">/*__DADOS__*/</script>
+<script>
+/*__STEPPER__*/
+</script>
+</body>
+</html>
