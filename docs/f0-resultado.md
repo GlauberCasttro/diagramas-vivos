@@ -71,8 +71,8 @@ O layout usa ELK `layered` com as zonas como nós compostos (`INCLUDE_CHILDREN`)
 diagrama inteiro. Em RIGHT cada nó da cadeia principal vira uma coluna (260 px de card + 130 px entre camadas):
 o `fluxo-card` chega a **6805 px de largura** para 1045 de altura (proporção 6,5:1) e o `skill` a 4388 px
 (5,3:1). Em DOWN as proporções ficam 0,84, 0,50 e 0,55, que se lêem rolando a página e cabem no zoom de foco do
-passo a passo. **Escolha: DOWN nos três.** Para isso `scripts/gerar.mjs` ganhou `--direcao RIGHT|DOWN`
-(padrão RIGHT, repassado a `layoutFluxo`; teste em `tests/gerar.test.mjs`) e a saída JSON informa `direcao`.
+passo a passo. **Escolha: DOWN nos três.** Para isso `scripts/gerar.mjs` ganhou `--direcao DOWN|RIGHT`
+(padrão DOWN desde a revisão final, repassado a `layoutFluxo`; teste em `tests/gerar.test.mjs`) e a saída JSON informa `direcao`.
 
 Nenhuma das duas reproduz a composição da origem (zonas empilhadas, nós em linha dentro de cada zona, 980 px de
 largura): isso exigiria direção por zona, o que o ELK não faz com `INCLUDE_CHILDREN`. Ver achado V1.

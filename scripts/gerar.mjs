@@ -23,7 +23,7 @@ function sair(obj, codigo) {
 }
 
 function lerArgs(argv) {
-  const a = { entrada: null, saida: null, roteador: 'elk', nome: null, direcao: 'RIGHT' };
+  const a = { entrada: null, saida: null, roteador: 'elk', nome: null, direcao: 'DOWN' };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
     if (v === '--saida') a.saida = argv[++i];
@@ -82,7 +82,7 @@ function textos(d) {
 async function main() {
   const args = lerArgs(process.argv.slice(2));
   if (!args.entrada || !args.saida) {
-    const msg = 'uso: gerar.mjs <diagram.json> --saida <dir> [--roteador elk|libavoid] [--direcao RIGHT|DOWN] [--nome NN-slug]';
+    const msg = 'uso: gerar.mjs <diagram.json> --saida <dir> [--roteador elk|libavoid] [--direcao DOWN|RIGHT] [--nome NN-slug]';
     sair({ erro: msg, erros: [msg] }, 1);
   }
   if (!['elk', 'libavoid'].includes(args.roteador)) {

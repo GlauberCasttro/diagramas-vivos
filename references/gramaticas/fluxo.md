@@ -32,11 +32,11 @@ Diagrama de processo com zonas numeradas, nós em cards e setas direcionais. For
   nó, na ordem em que a história acontece. Outros flows (ex.: "Caminho de falha") são opcionais.
 
 ## Direção (`--direcao`, derivado de `docs/f0-resultado.md`)
-- `DOWN` (cima para baixo): padrão recomendado para fluxos longos ou com muitas camadas (cerca de 8 ou mais
+- `DOWN` (cima para baixo, padrão do CLI): recomendado para fluxos longos ou com muitas camadas (cerca de 8 ou mais
   nós em sequência, ou com retornos). Em RIGHT cada etapa vira uma coluna: fluxos longos ficam com
   proporção 5:1 a 6:1 e não cabem na tela nem no zoom do passo a passo; em DOWN ficam 0,5 a 0,8 de largura
   por altura e se leem rolando.
-- `RIGHT` (esquerda para direita, padrão do CLI): só para fluxos curtos (até cerca de 5 a 6 nós em linha,
+- `RIGHT` (esquerda para direita): só para fluxos curtos (até cerca de 5 a 6 nós em linha,
   poucos retornos), que cabem numa tela larga.
 - Na dúvida, `DOWN`.
 
