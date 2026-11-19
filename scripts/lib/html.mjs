@@ -31,12 +31,17 @@ button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 button:disabled { opacity: .4; cursor: default; }
 button[hidden] { display: none; }
 /* #vp na frente: o <style> do SVG vem depois no documento e venceria com a mesma especificidade. */
-#vp .no, #vp .aresta { transition: opacity .3s var(--ease); }
-#vp .no.dim, #vp .aresta.dim { opacity: .2; }
+#vp .no, #vp .aresta, #vp .portas [data-aresta] { transition: opacity .3s var(--ease); }
+#vp .no.dim, #vp .aresta.dim, #vp .portas [data-aresta].dim { opacity: .2; }
 #vp .aresta.dim .flow { opacity: 0; }
 #vp .no.hl .card { stroke: var(--c); stroke-opacity: 1; stroke-width: 2.5; }
 #vp .aresta.hl .trace { stroke-opacity: 1; }
 #vp .aresta.hl .flow { opacity: .95; animation: fluxo 1.1s linear infinite; }
+/* No passo a passo os tokens SMIL e a chegada animada somem; ao sair, voltam (a cadeia nunca para). */
+html.passo-a-passo #vp .token, html.passo-a-passo #vp .chegada { display: none; }
+#vp .no.pulsa .card { animation: pulsa 1.5s var(--ease) infinite; }
+@keyframes pulsa { 0%, 100% { stroke: var(--c); stroke-width: 2.5; stroke-opacity: 1; } 50% { stroke-width: 5; stroke-opacity: .35; } }
+#barra #b-rota { color: var(--text-2); font-size: 13px; }
 @keyframes fluxo { to { stroke-dashoffset: -24; } }
 .pulso { fill: var(--c, var(--text)); }
 @media (prefers-reduced-motion: reduce) {
@@ -50,12 +55,6 @@ function jsonSeguro(v) {
   return JSON.stringify(v).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 }
 
-const caixa = (pts) => {
-  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-  const x = Math.min(...xs), y = Math.min(...ys);
-  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-};
-
 export function emitirHtml(diagrama, layout, svg) {
   const porIdNo = new Map(layout.nos.map((n) => [n.id, n]));
   const porIdAresta = new Map(layout.arestas.map((a) => [a.id, a]));
@@ -63,13 +62,13 @@ export function emitirHtml(diagrama, layout, svg) {
   for (const n of diagrama.nos) {
     const g = porIdNo.get(n.id);
     if (!g) throw new Error(`emitirHtml: nó "${n.id}" ausente no layout`);
-    nos[n.id] = { x: g.x, y: g.y, w: g.w, h: g.h };
+    nos[n.id] = { nome: n.nome };
   }
   const arestas = {};
   for (const a of diagrama.arestas) {
     const g = porIdAresta.get(a.id);
     if (!g) throw new Error(`emitirHtml: aresta "${a.id}" ausente no layout`);
-    arestas[a.id] = { de: a.de, para: a.para, caixa: caixa(g.pontos) };
+    arestas[a.id] = { de: a.de, para: a.para, ...(a.resposta ? { resposta: a.resposta } : {}) };
   }
   const dados = { titulo: diagrama.titulo, flows: diagrama.flows, nos, arestas };
 

@@ -1,7 +1,8 @@
 /* Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
    Origem: floorplan/assets/viewer.html (pan/zoom :1250-1347, centerOn :1411-1416, highlightFlow :1884-1905,
    teclado :2288-2304). Passo a passo guiado sem dependências: #passo=N (1-based, numeração global pelos
-   flows em ordem) abre direto no passo N, sem transição. */
+   flows em ordem) abre direto no passo N, sem transição. Câmera fixa (adendo 2): enquadra o diagrama
+   inteiro ao abrir e nunca se move entre passos; zoom/pan só manuais. */
 (() => {
   const D = JSON.parse(document.getElementById('dados').textContent);
   const $ = (id) => document.getElementById(id);
@@ -11,9 +12,11 @@
   const semMovimento = () => reduz.matches;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-  const elNo = new Map(), elAresta = new Map();
+  const VOLTA = '~volta'; // id da volta no Layout (data-id/data-aresta); o path é a-<id>--volta
+  const elNo = new Map(), elAresta = new Map(), elPorta = new Map();
   svg.querySelectorAll('g.no[data-id]').forEach((g) => elNo.set(g.getAttribute('data-id'), g));
   svg.querySelectorAll('g.aresta[data-id]').forEach((g) => elAresta.set(g.getAttribute('data-id'), g));
+  svg.querySelectorAll('.portas [data-aresta]').forEach((g) => elPorta.set(g.getAttribute('data-aresta'), g));
   const fx = document.createElementNS(svg.namespaceURI, 'g');
   fx.setAttribute('class', 'fx');
   svg.appendChild(fx);
@@ -22,9 +25,10 @@
   D.flows.forEach((f) => f.passos.forEach((p, i) => passos.push({ flow: f, i, ref: p.ref, nota: p.nota || '' })));
   const N = passos.length;
   const W = +svg.getAttribute('width'), H = +svg.getAttribute('height');
-  let atual = 0; // 0 = repouso (só o caminho feliz do primeiro flow corre)
+  const TOCAR_MS = 1500;
+  let atual = 0; // 0 = repouso (os cenários SMIL do próprio SVG tocam)
   let t = { x: 0, y: 0, k: 1 };
-  let camera = null; // o que a câmera enquadra agora, para refazer no resize
+  let manual = false; // usuário mexeu no zoom/pan: resize não reenquadra
   let timerAnim = 0, timerTocar = 0;
 
   // ---------------- câmera ----------------
@@ -47,20 +51,14 @@
     const a = areaLivre();
     return { k, x: a.x + a.w / 2 - (c.x + c.w / 2) * k, y: a.y + a.h / 2 - (c.y + c.h / 2) * k };
   }
+  // Enquadra o diagrama inteiro. Chamado ao abrir, no "ver tudo" e no resize; nunca por troca de passo.
   function ajustar(animar) {
-    camera = null;
+    manual = false;
     const a = areaLivre();
     setT(centrar({ x: 0, y: 0, w: W, h: H }, Math.min(a.w / W, a.h / H, 1)), animar);
   }
-  function enquadrarPasso(p, animar) {
-    camera = p;
-    const no = D.nos[p.ref];
-    if (no) { setT(centrar(no, 1.4), animar); return; }
-    const c = D.arestas[p.ref].caixa, folga = 80, a = areaLivre();
-    const k = Math.min(a.w / (c.w + 2 * folga), a.h / (c.h + 2 * folga), 1.4);
-    setT(centrar(c, k), animar);
-  }
   function zoomPor(f, cx, cy) {
+    manual = true;
     cx ??= innerWidth / 2; cy ??= innerHeight / 2;
     const k = clamp(t.k * f, 0.1, 4);
     setT({ k, x: cx - (cx - t.x) * (k / t.k), y: cy - (cy - t.y) * (k / t.k) }, false);
@@ -68,13 +66,15 @@
 
   // ---------------- realce ----------------
   function limpar() {
-    for (const g of elNo.values()) g.classList.remove('hl', 'dim');
+    for (const g of elNo.values()) g.classList.remove('hl', 'dim', 'pulsa');
     for (const g of elAresta.values()) g.classList.remove('hl', 'dim');
+    for (const g of elPorta.values()) g.classList.remove('hl', 'dim');
     fx.textContent = '';
   }
+  // Token do passo: percorre a aresta ativa (na volta, o path <id>~volta, do "para" ao "de").
   function pulso(id) {
     fx.textContent = '';
-    if (!id || semMovimento()) return;
+    if (!id || semMovimento() || !elAresta.has(id)) return;
     const g = elAresta.get(id);
     const papel = [...g.classList].find((c) => c.startsWith('papel-')) || '';
     fx.setAttribute('class', `fx ${papel}`);
@@ -85,15 +85,33 @@
     const anim = document.createElementNS(ns, 'animateMotion');
     for (const [k, v] of Object.entries({ dur: '1.5s', repeatCount: 'indefinite', begin: 'indefinite', calcMode: 'linear',
       path: g.querySelector('path.trace').getAttribute('d') })) anim.setAttribute(k, v);
+    anim.setAttribute('dur', `${TOCAR_MS / 1000}s`);
     dot.appendChild(anim);
     fx.appendChild(dot);
     anim.beginElement?.();
   }
+  let tokenAtual = null; // aresta (id do Layout) que o token do passo percorre; null em passo de nó
   function realcar(p) {
-    const { nos, arestas } = destaques(p.flow.passos, p.i, D.arestas); // assets/destaques.mjs
+    const { nos, arestas, sentido } = destaques(p.flow.passos, p.i, D.arestas); // assets/destaques.mjs
+    const ativas = new Set([...arestas].map((id) => (sentido === 'volta' ? id + VOLTA : id)));
     for (const [id, g] of elNo) g.classList.add(nos.has(id) ? 'hl' : 'dim');
-    for (const [id, g] of elAresta) g.classList.add(arestas.has(id) ? 'hl' : 'dim');
-    pulso([...arestas][0]);
+    for (const [id, g] of elAresta) g.classList.add(ativas.has(id) ? 'hl' : 'dim');
+    for (const [id, g] of elPorta) g.classList.add(ativas.has(id) ? 'hl' : 'dim');
+    if (sentido === null) { // passo que é nó: só o card pulsa
+      tokenAtual = null;
+      elNo.get(p.ref)?.classList.add('pulsa');
+    } else tokenAtual = [...ativas][0];
+    pulso(tokenAtual);
+  }
+  // Ida "A → B" (de → para). Volta: o salto vai do para (A) ao de (B) e a seta aponta para quem recebe:
+  // "B ⇠ A · resposta" (ex.: "Planejador ⇠ Ferramentas · resultado"). Passo de nó: o nome do nó.
+  function rota(p) {
+    const nome = (id) => D.nos[id]?.nome ?? id;
+    const a = D.arestas[p.ref];
+    if (!a) return nome(p.ref);
+    const passo = p.flow.passos[p.i];
+    if (passo.sentido === 'volta') return `${nome(a.de)} ⇠ ${nome(a.para)} · ${a.resposta || ''}`;
+    return `${nome(a.de)} → ${nome(a.para)}`;
   }
 
   // ---------------- barra ----------------
@@ -103,6 +121,7 @@
     const p = passos[atual - 1];
     $('b-flow').textContent = p ? p.flow.titulo : D.flows[0].titulo;
     $('b-passo').textContent = p ? `Passo ${atual} de ${N}` : `${N} passos`;
+    $('b-rota').textContent = p ? rota(p) : '';
     $('b-nota').textContent = p ? p.nota : 'Use → ou o botão próximo para começar.';
     [...dots.children].forEach((d, j) => d.classList.toggle('on', j < atual));
     $('b-ant').disabled = atual <= 1;
@@ -124,9 +143,9 @@
     atual = clamp(i | 0, 0, N);
     limpar();
     if (atual >= N) parar();
-    atualizarBarra(); // antes da câmera: a altura da barra define a área livre
-    if (atual === 0) ajustar(animar);
-    else { const p = passos[atual - 1]; realcar(p); enquadrarPasso(p, animar); }
+    atualizarBarra();
+    root.classList.toggle('passo-a-passo', atual > 0); // esconde os tokens SMIL enquanto há passo
+    if (atual > 0) realcar(passos[atual - 1]);
     gravarHash();
     root.dataset.passo = String(atual); // sinal de pronto para captura (Task 8)
   }
@@ -135,7 +154,7 @@
     if (semMovimento()) return;
     if (timerTocar) { parar(); atualizarBarra(); return; }
     if (atual >= N) ir(0, false);
-    timerTocar = setInterval(() => ir(atual + 1, true), 3000);
+    timerTocar = setInterval(() => ir(atual + 1, true), TOCAR_MS);
     ir(atual + 1, true);
   }
   const proximo = () => { parar(); ir(atual + 1, true); };
@@ -166,13 +185,14 @@
   palco.addEventListener('wheel', (ev) => {
     ev.preventDefault();
     const pan = !ev.ctrlKey && ev.deltaMode === 0 && (Math.abs(ev.deltaX) > 0 || Math.abs(ev.deltaY) < 40);
-    if (pan) setT({ ...t, x: t.x - ev.deltaX, y: t.y - ev.deltaY }, false);
+    if (pan) { manual = true; setT({ ...t, x: t.x - ev.deltaX, y: t.y - ev.deltaY }, false); }
     else zoomPor(Math.exp(-ev.deltaY * (ev.ctrlKey ? 0.01 : 0.0018)), ev.clientX, ev.clientY);
   }, { passive: false });
   let arraste = null;
   palco.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0) return;
     arraste = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, tx: t.x, ty: t.y };
+    manual = true;
     palco.classList.add('arrastando');
   });
   addEventListener('pointermove', (ev) => {
@@ -182,7 +202,7 @@
   const fim = (ev) => { if (arraste && ev.pointerId === arraste.id) { arraste = null; palco.classList.remove('arrastando'); } };
   addEventListener('pointerup', fim);
   addEventListener('pointercancel', fim);
-  addEventListener('resize', () => { if (camera) enquadrarPasso(camera, false); else ajustar(false); });
+  addEventListener('resize', () => { if (!manual) ajustar(false); });
 
   // ---------------- tema e movimento ----------------
   const NOMES = { auto: 'auto', light: 'claro', dark: 'escuro' };
@@ -196,11 +216,13 @@
   addEventListener('diagramas-vivos-tema', rotularTema);
   const mudouMovimento = () => {
     if (semMovimento()) { parar(); fx.textContent = ''; }
-    else if (atual) pulso(svg.querySelector('g.aresta.hl')?.getAttribute('data-id'));
+    else if (atual) pulso(tokenAtual);
     atualizarBarra();
   };
   if (reduz.addEventListener) reduz.addEventListener('change', mudouMovimento); else if (reduz.addListener) reduz.addListener(mudouMovimento);
 
   rotularTema();
+  atualizarBarra(); // barra no repouso: a área livre (e a câmera) não depende do passo aberto pelo hash
+  ajustar(false); // câmera: uma vez, ao abrir
   ir(passoAtualDoHash(), false);
 })();

@@ -1,8 +1,8 @@
 /* Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
    Origem: floorplan/assets/viewer.html (card :157-216 e arestas .trace/.flow :226-234), traduzido para SVG
    puro (só rect/path/text/circle), no visual de docs/referencia-visual/02-agente.svg (tema claro padrão).
-   Diferença: aqui .flow das arestas com classe "corre" fica visível e animado em repouso; o stepper (HTML)
-   liga o mesmo efeito por .hl. */
+   Diferença: a visibilidade do .flow vem do atributo opacity (SMIL dos cenários vivos no SVG; .hl/.dim
+   no passo a passo do HTML), por isso o CSS não fixa opacity no .flow. */
 svg { font-family: var(--sans); }
 .fundo { fill: var(--bg); }
 #grade circle { fill: var(--grid); }
@@ -53,14 +53,19 @@ svg { font-family: var(--sans); }
 /* ---------- arestas ---------- */
 .aresta { color: var(--c); }
 .aresta .trace { fill: none; stroke: var(--c); stroke-width: 1.3; stroke-opacity: .5; stroke-linecap: round; stroke-linejoin: round; }
-.aresta .flow { fill: none; stroke: var(--c); stroke-width: 2; stroke-dasharray: 2 10; stroke-linecap: round; opacity: 0; }
+.aresta .flow { fill: none; stroke: var(--c); stroke-width: 2; stroke-dasharray: 2 10; stroke-linecap: round; }
 .ret, .aresta.proposto .trace { stroke-dasharray: 6 6; }
 .aresta.corre .trace, .aresta.hl .trace { stroke-opacity: .9; }
-.aresta.corre .flow, .aresta.hl .flow { opacity: .95; }
 .port { fill: var(--bg); stroke: var(--c); stroke-width: 1.5; }
 .chevron { fill: none; stroke: var(--c); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .rotulo rect { fill: var(--bg); }
 .rotulo text { fill: var(--c); font-weight: 500; font-size: 12px; }
 
+/* ---------- cenários vivos (adendo 2): token, chegada, linhas do rodapé ---------- */
+.token { fill: var(--text); }
+.no .chegada { fill: none; stroke: var(--c); stroke-width: 1.5; }
+.cen { fill: var(--text-2); font-weight: 500; font-size: 12.5px; }
+.cen .n { fill: var(--text); font-weight: 600; }
+
 /* Movimento reduzido (adendo 2): nada anima e o tracejado que corre some; o destaque fica no traço. */
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; } .aresta .flow { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } .aresta .flow, .token, .no .chegada { display: none; } .cen { opacity: 1; } }

@@ -178,7 +178,7 @@ test('cor do traço = cor do tipo da aresta (CSS do tipo e tokens)', async () =>
   assert.doesNotMatch(legenda, />chamada<|>dados<|>evento<|>fila</);
 });
 
-test('requisicao: volta (~volta) tracejada com chevron na chegada, portas nas pontas, orçamento', async () => {
+test('requisicao: volta (data-id <id>~volta, path#a-<id>--volta) tracejada com chevron na chegada, portas nas pontas, orçamento', async () => {
   const d = ler('requisicao.json');
   const L = await layoutFluxo(d, fontes);
   const svg = emitirSvg(d, L, fontes);
@@ -186,7 +186,7 @@ test('requisicao: volta (~volta) tracejada com chevron na chegada, portas nas po
   assert.ok(comResposta.length > 0);
   for (const a of comResposta) {
     const tipo = a.tipo || 'chamada';
-    const re = `<g class="aresta volta papel-${a.papel} tipo-${tipo}" data-id="${a.id}~volta"><path id="a-${a.id}~volta" class="trace ret"`;
+    const re = `<g class="aresta volta papel-${a.papel} tipo-${tipo}" data-id="${a.id}~volta"><path id="a-${a.id}--volta" class="trace ret"`;
     assert.ok(svg.includes(re), re);
     assert.ok(svg.includes(`>${a.resposta}<`), a.resposta);
   }
@@ -257,4 +257,91 @@ test('arestas com cotovelo saem com cantos arredondados no SVG; último trecho �
     assert.match(dTrace, /Q/, a.id);
     assert.match(dTrace, /L[\d.-]+,[\d.-]+$/, a.id);
   }
+});
+
+// ---------- Task 14: cenários vivos (SMIL, sem JS), adendo 2 itens 1–6 ----------
+const passosDeAresta = (d) => d.flows.flatMap((f) => f.passos).filter((p) => d.arestas.some((a) => a.id === p.ref));
+const motions = (svg) => [...svg.matchAll(/<animateMotion id="(m\d+)" dur="([\d.]+)s" begin="([^"]+)"[^>]*><mpath href="#([^"]+)"\/><\/animateMotion>/g)]
+  .map((m) => ({ id: m[1], dur: +m[2], begin: m[3], href: m[4] }));
+
+for (const nome of ['agente.json', 'minimo.json', 'retorno.json', 'laco.json', 'requisicao.json']) {
+  test(`${nome}: um animateMotion por passo de aresta, mpath válido, cadeia em loop`, async () => {
+    const d = ler(nome);
+    const svg = await gerar(d);
+    const ms = motions(svg);
+    assert.equal(conta(svg, '<animateMotion'), passosDeAresta(d).length);
+    assert.equal(ms.length, passosDeAresta(d).length);
+    const idsPath = new Set([...svg.matchAll(/<path id="([^"]+)"/g)].map((m) => m[1]));
+    for (const m of ms) {
+      assert.ok(idsPath.has(m.href), `mpath #${m.href}`);
+      assert.ok(m.dur >= 0.3, `${m.id} dur ${m.dur}`);
+    }
+    // ids do DOM nunca levam "~"
+    for (const [, id] of svg.matchAll(/ id="([^"]+)"/g)) assert.match(id, /^[A-Za-z0-9_-]+$/, id);
+    // cadeia: m1..mN em ordem; o primeiro começa em 0.5s e repete depois do último
+    const cadeia = [...svg.matchAll(/ id="(m\d+)"[^>]* begin="([^"]+)"|<animate[^>]* id="(m\d+)"[^>]* begin="([^"]+)"/g)];
+    const nums = [...svg.matchAll(/ id="m(\d+)"/g)].map((m) => +m[1]).sort((a, b) => a - b);
+    const N = nums.length;
+    assert.deepEqual(nums, Array.from({ length: N }, (_, i) => i + 1));
+    assert.ok(cadeia.length >= 1);
+    const primeiro = new RegExp(` id="m1"[^>]* begin="0\\.5s;m${N}\\.end\\+1\\.1s"`);
+    assert.match(svg, primeiro);
+    // uma linha de cenário por flow, no rodapé
+    assert.equal(conta(svg, '<text class="cen"'), d.flows.length);
+    d.flows.forEach((f, i) => assert.ok(svg.includes(`<tspan class="n">${i + 1}. ${f.titulo}</tspan>`), f.titulo));
+    assert.ok(Buffer.byteLength(svg) < 150 * 1024);
+  });
+}
+
+test('agente: ritmo, volta pela aresta --volta, chegada pisca, .flow só no cenário, rodapé', async () => {
+  const d = ler('agente.json');
+  const L = await layoutFluxo(d, fontes);
+  const svg = emitirSvg(d, L, fontes);
+  const ms = motions(svg);
+  assert.deepEqual(ms.map((m) => m.href), ['a-pede', 'a-chama', 'a-chama--volta', 'a-lembra', 'a-pede', 'a-revisa']);
+  assert.deepEqual(ms.map((m) => m.id), ['m1', 'm2', 'm3', 'm4', 'm5', 'm6']);
+  assert.equal(ms[0].begin, '0.5s;m6.end+1.1s');
+  assert.equal(ms[1].begin, 'm1.end+0.25s');
+  assert.equal(ms[4].begin, 'm4.end+1.1s'); // entre cenários
+  // dur = max(0,3; comprimento/120 × 0,38)
+  const comp = (pts) => pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
+  const geo = new Map(L.arestas.map((a) => [a.id, a]));
+  const esperado = Math.max(0.3, (comp(geo.get('chama').pontos) / 120) * 0.38);
+  assert.ok(Math.abs(ms[1].dur - esperado) < 0.02, `${ms[1].dur} vs ${esperado}`);
+  // token visível só durante o salto
+  assert.match(svg, /<circle class="token" r="3\.4" opacity="0"><set attributeName="opacity" to="1" begin="m3\.begin" end="m3\.end"\/><animateMotion id="m3"/);
+  assert.match(svg, /<g id="requisicao">/);
+  // chegada: contorno do card pisca 0,7 s (ferramentas chega em m2; planejador em m1 e m3 e m5)
+  const card = (id) => svg.slice(svg.indexOf(`<g id="n-${id}"`)).split('</g>\n')[0];
+  assert.match(card('ferramentas'), /<rect class="chegada"[^>]*opacity="0"><animate attributeName="opacity" values="0;1;0" dur="0\.7s" begin="m2\.end"\/><\/rect>/);
+  assert.match(card('planejador'), /begin="m1\.end;m3\.end;m5\.end"/);
+  assert.match(card('usuario'), /begin="m1\.begin;m5\.begin"/);
+  // .flow visível só enquanto o cenário toca
+  const flowDe = (id) => svg.slice(svg.indexOf(`data-id="${id}"`)).split('</g>')[0];
+  assert.match(flowDe('pede'), /<path class="flow" d="[^"]+" opacity="0"><set attributeName="opacity" to="\.95" begin="m1\.begin" end="m4\.end\+0\.5s"\/><set attributeName="opacity" to="\.95" begin="m5\.begin" end="m6\.end\+0\.5s"\/><\/path>/);
+  assert.match(flowDe('chama~volta'), /begin="m3\.begin" end="m4\.end\+0\.5s"/);
+  assert.doesNotMatch(flowDe('revisa'), /m1\.begin/);
+  // rodapé: "N. Título: A → B → …", forte enquanto toca
+  assert.match(svg, /<text class="cen"[^>]*opacity="\.55"><tspan class="n">1\. Pedido com uso de ferramenta<\/tspan><tspan>: Usuário → Planejador → Ferramentas → Planejador → Memória<\/tspan><set attributeName="opacity" to="1" begin="m1\.begin" end="m4\.end\+0\.5s"\/><\/text>/);
+  assert.match(svg, /<tspan>: Usuário → Planejador → Revisor<\/tspan><set attributeName="opacity" to="1" begin="m5\.begin" end="m6\.end\+0\.5s"\/>/);
+  // movimento reduzido: sem token e sem .flow
+  assert.match(svg, /prefers-reduced-motion: reduce\)[^@]*\.token[^}]*display: none/);
+  // rodapé cabe no canvas
+  const [, , altura] = svg.match(/viewBox="0 0 (\d+) (\d+)"/);
+  const ys = [...svg.matchAll(/<text class="cen" x="[\d.]+" y="([\d.]+)"/g)].map((m) => +m[1]);
+  assert.ok(Math.max(...ys) < +altura, `${ys} < ${altura}`);
+});
+
+test('passo que é nó só pisca o card e mantém a cadeia', async () => {
+  const d = ler('minimo.json'); // passos: nó a, aresta a-b
+  const svg = await gerar(d);
+  const card = svg.slice(svg.indexOf('<g id="n-a"')).split('</g>\n')[0];
+  assert.match(card, /<animate id="m1" attributeName="opacity" values="0;1;0" dur="0\.7s" begin="0\.5s;m2\.end\+1\.1s"\/>/);
+  assert.match(svg, /<animateMotion id="m2" dur="[\d.]+s" begin="m1\.end\+0\.25s"/);
+  assert.match(svg, /<tspan>: A → B<\/tspan>/);
+});
+
+test('animar:false não emite SMIL', async () => {
+  const svg = await gerar(ler('agente.json'), { animar: false });
+  assert.doesNotMatch(svg, /<animateMotion|<animate |<set |class="token"/);
 });

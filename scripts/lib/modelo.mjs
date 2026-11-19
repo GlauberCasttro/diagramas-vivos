@@ -8,6 +8,8 @@ export const SELO_MAX = 12;
 
 const str = (v) => typeof v === 'string' && v.length > 0;
 const obj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+// Ids viram id/href no DOM do SVG (n-<id>, a-<id>, a-<id>--volta, mpath): só caracteres seguros.
+export const ID_RE = /^[A-Za-z0-9_-]+$/;
 
 export function validar(d) {
   const erros = [];
@@ -19,11 +21,16 @@ export function validar(d) {
   if (!str(d.titulo)) erros.push('titulo: texto obrigatório');
   if (d.subtitulo !== undefined && typeof d.subtitulo !== 'string') erros.push('subtitulo: texto esperado');
 
+  const formato = (id) => {
+    if (id.includes('~')) erros.push(`id ${id}: "~" é reservado (<id>~volta é a volta no Layout)`);
+    else if (!ID_RE.test(id)) erros.push(`id ${id}: use só letras ASCII, dígitos, "_" e "-"`);
+    if (id.endsWith('--volta')) erros.push(`id ${id}: sufixo "--volta" é reservado (a-<id>--volta é a volta no SVG)`);
+  };
   const ids = new Set();
   const usar = (id) => {
     if (!str(id)) return;
     if (ids.has(id)) erros.push(`id duplicado: ${id}`);
-    if (id.includes('~')) erros.push(`id ${id}: "~" é reservado (<id>~volta é a volta no Layout)`);
+    formato(id);
     ids.add(id);
   };
   const nivel = (item, rot) => {
@@ -42,6 +49,7 @@ export function validar(d) {
       if (!obj(z) || !str(z.id)) return erros.push(`zonas[${i}].id: obrigatório`);
       if (!str(z.nome)) erros.push(`zonas[${z.id}].nome: obrigatório`);
       if (zonaIds.has(z.id)) erros.push(`zonas[${z.id}]: id duplicado: ${z.id}`);
+      formato(z.id);
       zonaIds.add(z.id);
     });
   }
@@ -92,6 +100,7 @@ export function validar(d) {
     d.flows.forEach((f, i) => {
       if (!obj(f) || !str(f.id)) return erros.push(`flows[${i}].id: obrigatório`);
       const r = `flows[${f.id}]`;
+      formato(f.id);
       if (!str(f.titulo)) erros.push(`${r}.titulo: obrigatório`);
       if (!Array.isArray(f.passos) || f.passos.length < 2) return erros.push(`${r}: mínimo 2 passos`);
       f.passos.forEach((p, j) => {

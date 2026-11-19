@@ -117,3 +117,19 @@ test('fixture requisicao é válida', () => {
 test('id com "~" é reservado (a volta vive no Layout como <id>~volta)', () => {
   const d = base(); d.arestas[0].id = 'a-b~volta'; temErro(d, 'reservado');
 });
+test('ids só com letras ASCII, dígitos, "_" e "-" (viram id no DOM do SVG)', () => {
+  for (const ruim of ['a b', 'açao', 'a.b', 'a/b', 'a"b', 'a#b']) {
+    const d = base(); d.nos[0].id = ruim; d.arestas[0].de = ruim; d.flows[0].passos[0].ref = ruim;
+    temErro(d, `id ${ruim}: use só`);
+  }
+  const d = base(); d.arestas[0].id = 'a b'; d.flows[0].passos.forEach((p) => { if (p.ref === 'a-b') p.ref = 'a b'; });
+  temErro(d, 'id a b: use só');
+  const z = base(); z.zonas = [{ id: 'z 1', nome: 'Z' }]; temErro(z, 'id z 1: use só');
+  const f = base(); f.flows[0].id = 'f 1'; temErro(f, 'id f 1: use só');
+  const ok = base(); ok.nos[0].id = 'A_b-9'; ok.arestas[0].de = 'A_b-9'; ok.flows[0].passos.forEach((p) => { if (p.ref === 'a') p.ref = 'A_b-9'; });
+  assert.deepEqual(validar(ok).erros, []);
+});
+test('sufixo "--volta" é reservado (id DOM da volta no SVG)', () => {
+  const d = base(); d.arestas[0].id = 'x--volta'; d.flows[0].passos.forEach((p) => { if (p.ref === 'a-b') p.ref = 'x--volta'; });
+  temErro(d, 'reservado');
+});

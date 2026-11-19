@@ -60,16 +60,25 @@ test('JSON embutido escapa </script e sobrevive a $& no texto', async () => {
   assert.equal(dados.titulo, d.titulo);
 });
 
-test('dados trazem geometria de nós e arestas para a câmera', async () => {
-  const d = ler('retorno.json');
+test('dados trazem nomes dos nós e resposta das arestas para a barra (câmera não usa geometria)', async () => {
+  const d = ler('agente.json');
   const L = await layoutFluxo(d, fontes);
   const dados = dadosDe(emitirHtml(d, L, emitirSvg(d, L, fontes)));
-  for (const n of d.nos) {
-    const g = dados.nos[n.id];
-    assert.ok(g && Number.isFinite(g.x) && g.w > 0 && g.h > 0, n.id);
-  }
+  for (const n of d.nos) assert.equal(dados.nos[n.id].nome, n.nome);
   for (const a of d.arestas) {
     const g = dados.arestas[a.id];
-    assert.ok(g && g.de === a.de && g.para === a.para && g.caixa.w >= 0, a.id);
+    assert.ok(g && g.de === a.de && g.para === a.para, a.id);
+    assert.equal(g.resposta, a.resposta);
   }
+});
+
+test('câmera fixa, tocar 1500 ms, barra com ida "→" e volta "⇠ · resposta", tokens ocultos no passo a passo', async () => {
+  const { html } = await gerar(ler('agente.json'));
+  assert.match(stepper, /1500/);
+  assert.ok(html.includes('${nome(a.de)} ⇠ ${nome(a.para)} · ${a.resposta'), 'volta: B ⇠ A · resposta');
+  assert.ok(html.includes('${nome(a.de)} → ${nome(a.para)}'), 'ida: A → B');
+  assert.ok(html.includes('id="b-rota"'), 'linha A → B na barra');
+  assert.doesNotMatch(stepper, /enquadrarPasso|3000/);
+  assert.match(html, /\.passo-a-passo [^{]*\.token[^{]*\{[^}]*display: none/);
+  assert.match(html, /\.portas \[data-aresta\]\.dim/);
 });
