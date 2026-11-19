@@ -16,8 +16,8 @@ perfil novo (--user-data-dir temporario) por captura.
 Temas: o HTML guarda o tema em localStorage (diagramas-vivos-tema), que um perfil novo
 nao tem; o tema "auto" segue prefers-color-scheme. Por isso o tema vem de
 --blink-settings=preferredColorScheme=N: 0 = escuro, 1 = claro (confirmado pelo
-fundo das capturas). O SVG avulso e sempre escuro por padrao; para o claro
-e capturado uma copia temporaria com data-theme="light" na raiz.
+fundo das capturas). O SVG avulso e claro por padrao (referencia visual); para o
+escuro e capturado uma copia temporaria com data-theme="dark" na raiz.
 Saida padrao: pasta irma <stem>-capturas/.
 """
 import argparse
@@ -115,11 +115,11 @@ def main():
     with tempfile.TemporaryDirectory(prefix="dv-svg-") as tmp:
         with open(svg, encoding="utf-8") as f:
             src = f.read()
-        claro = os.path.join(tmp, "claro.svg")
-        with open(claro, "w", encoding="utf-8") as f:
-            f.write(src.replace("<svg ", '<svg data-theme="light" ', 1))
-        tentar(pathlib.Path(svg).as_uri(), "svg-escuro.png", "escuro")
-        tentar(pathlib.Path(claro).as_uri(), "svg-claro.png", "claro")
+        escuro = os.path.join(tmp, "escuro.svg")
+        with open(escuro, "w", encoding="utf-8") as f:
+            f.write(src.replace("<svg ", '<svg data-theme="dark" ', 1))
+        tentar(pathlib.Path(escuro).as_uri(), "svg-escuro.png", "escuro")
+        tentar(pathlib.Path(svg).as_uri(), "svg-claro.png", "claro")
         for tema in ("escuro", "claro"):
             tentar(pathlib.Path(html).as_uri(), f"repouso-{tema}.png", tema)
         for i in range(1, n + 1):

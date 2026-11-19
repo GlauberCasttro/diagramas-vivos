@@ -1,36 +1,16 @@
 /* Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
    Origem: floorplan/assets/viewer.html (tokens do tema escuro e do tema claro).
    Removidos os tokens de tipo de aresta, de tipo de nó e de método HTTP do floorplan;
-   acrescentados os papéis do diagrama (--p-*), espelhados em scripts/lib/cores.mjs. */
+   acrescentados os papéis do diagrama (--p-*), os tipos de ligação (--t-*) e as cores dos ícones (--i-*),
+   espelhados em scripts/lib/cores.mjs. O claro é o padrão (referência visual 02-agente.svg); o escuro
+   vale com data-theme="dark" na raiz (o svg avulso ou o html da página).
+   Sem sinal de menor neste arquivo: ele vai cru no style do SVG, que é XML. */
 :root {
   --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
-  --bg: #0f0f0f; --bg-rgb: 15, 15, 15; --grid: #1f1f1f;
-  --ink: 255, 255, 255; /* the colour the page tints with: white on dark, black on light */
-  --surface: #191919; --surface-hover: #1e1e1e; --raise: #232323; --raise-2: #2b2b2b;
-  --elev: rgba(26, 26, 26, .86); --hair: rgba(var(--ink), .06); --hair-2: rgba(var(--ink), .1);
-  --text: #ececec; --text-2: #b4b4b4; --text-3: #8b8b8b; --text-4: #5c5c5c;
-  --recent: #4ade80; --on-recent-text: #0b1f12;
-  --on: #ececec; --on-hover: #fff; --on-text: #0f0f0f; /* solid buttons, badges and dots */
-  --on-sev-text: #0f0f0f; /* text on a red or amber chip */
-  --ok: #6fd7a8; --sev-high: #f28b8b; --sev-medium: #f0c36b; --sev-low: #8b8b8b;
-  --warn-bg: rgba(240, 195, 107, .08); --warn-text: #f3d79b; --warn-sheet: rgba(46, 38, 18, .9);
-  --ok-bg: rgba(111, 215, 168, .08); --ok-text: #a9e5c9; --err-text: #f6a5a5;
-  --dir-bg: rgba(25, 25, 25, .7); --menu-solid: rgba(26, 26, 26, .94); --well: rgba(0, 0, 0, .3);
-  --palette-bg: rgba(30, 30, 30, .96); --modal-bg: rgba(30, 30, 30, .97);
-  --scrim: rgba(0, 0, 0, .45); --scrim-2: rgba(0, 0, 0, .5);
-  --shadow-lift: 0 18px 40px -20px rgba(0, 0, 0, 1);
-  --shadow-deep: 0 24px 64px -24px rgba(0, 0, 0, .9);
-  --ring: rgba(var(--ink), .88); --focus: rgba(var(--ink), .16);
   --r-card: 20px; --r-panel: 24px; --r-ctl: 12px;
   --ease: cubic-bezier(.16, 1, .3, 1); --ease-io: cubic-bezier(.65, 0, .35, 1);
-  --shadow-card: 0 1px 0 rgba(var(--ink), .035) inset, 0 12px 32px -20px rgba(0, 0, 0, .95);
-  --shadow-float: 0 0 0 1px rgba(var(--ink), .05), 0 24px 64px -24px rgba(0, 0, 0, .9);
   --panel-w: 360px; --pw: calc(var(--panel-w) + 32px); --gutter: 28px;
-  --p-feliz: #6fd7a8; --p-gate: #f28b8b; --p-memoria: #7aa7ff; --p-neutro: #b4b4b4; --p-externo: #e3a6f0;
-  color-scheme: dark;
-}
-:root[data-theme="light"] {
   color-scheme: light;
   --bg: #f3f3f1; --bg-rgb: 243, 243, 241; --grid: #d2d2ce; --ink: 0, 0, 0;
   --surface: #ffffff; --surface-hover: #fbfbfa; --raise: #ebebe8; --raise-2: #e0e0dc;
@@ -49,5 +29,36 @@
   --shadow-float: 0 0 0 1px rgba(0, 0, 0, .1), 0 20px 48px -22px rgba(0, 0, 0, .4);
   --shadow-lift: 0 16px 32px -18px rgba(0, 0, 0, .4);
   --shadow-deep: 0 20px 48px -22px rgba(0, 0, 0, .4);
+  --card-line: rgba(0, 0, 0, .1); --card-shadow: drop-shadow(0 8px 12px rgba(0, 0, 0, .12));
   --p-feliz: #157a3a; --p-gate: #b83d3d; --p-memoria: #1f5fd6; --p-neutro: #595959; --p-externo: #9440ad;
+  --t-chamada: #6a45d6; --t-rpc: #4450cf; --t-dados: #0a7766; --t-evento: #a65200; --t-fila: #a3366f;
+  --i-pessoa: #1f7ac4; --i-servico: #7a5ad8; --i-ferramenta: #c06a1d; --i-banco: #0f8a76; --i-gate: #b83d3d;
+  --i-externo: #6b6b6b; --i-fila: #9a5b00; --i-documento: #4a6a8f; --i-agente: #c43c86;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f0f0f; --bg-rgb: 15, 15, 15; --grid: #262626;
+  --ink: 255, 255, 255; /* the colour the page tints with: white on dark, black on light */
+  --surface: #191919; --surface-hover: #1e1e1e; --raise: #232323; --raise-2: #2b2b2b;
+  --elev: rgba(26, 26, 26, .86); --hair: rgba(var(--ink), .06); --hair-2: rgba(var(--ink), .1);
+  --text: #ececec; --text-2: #b4b4b4; --text-3: #8b8b8b; --text-4: #5c5c5c;
+  --recent: #4ade80; --on-recent-text: #0b1f12;
+  --on: #ececec; --on-hover: #fff; --on-text: #0f0f0f; /* solid buttons, badges and dots */
+  --on-sev-text: #0f0f0f; /* text on a red or amber chip */
+  --ok: #6fd7a8; --sev-high: #f28b8b; --sev-medium: #f0c36b; --sev-low: #8b8b8b;
+  --warn-bg: rgba(240, 195, 107, .08); --warn-text: #f3d79b; --warn-sheet: rgba(46, 38, 18, .9);
+  --ok-bg: rgba(111, 215, 168, .08); --ok-text: #a9e5c9; --err-text: #f6a5a5;
+  --dir-bg: rgba(25, 25, 25, .7); --menu-solid: rgba(26, 26, 26, .94); --well: rgba(0, 0, 0, .3);
+  --palette-bg: rgba(30, 30, 30, .96); --modal-bg: rgba(30, 30, 30, .97);
+  --scrim: rgba(0, 0, 0, .45); --scrim-2: rgba(0, 0, 0, .5);
+  --ring: rgba(var(--ink), .88); --focus: rgba(var(--ink), .16);
+  --shadow-card: 0 1px 0 rgba(var(--ink), .035) inset, 0 12px 32px -20px rgba(0, 0, 0, .95);
+  --shadow-float: 0 0 0 1px rgba(var(--ink), .05), 0 24px 64px -24px rgba(0, 0, 0, .9);
+  --shadow-lift: 0 18px 40px -20px rgba(0, 0, 0, 1);
+  --shadow-deep: 0 24px 64px -24px rgba(0, 0, 0, .9);
+  --card-line: rgba(255, 255, 255, .1); --card-shadow: drop-shadow(0 10px 14px rgba(0, 0, 0, .55));
+  --p-feliz: #6fd7a8; --p-gate: #f28b8b; --p-memoria: #7aa7ff; --p-neutro: #b4b4b4; --p-externo: #e3a6f0;
+  --t-chamada: #b09cff; --t-rpc: #99a3ff; --t-dados: #4fd1b5; --t-evento: #f2a65e; --t-fila: #f28cc2;
+  --i-pessoa: #6db4f2; --i-servico: #b09cff; --i-ferramenta: #f0a868; --i-banco: #4fd1b5; --i-gate: #f28b8b;
+  --i-externo: #b4b4b4; --i-fila: #e8b25c; --i-documento: #9fb6d4; --i-agente: #f28cc2;
 }

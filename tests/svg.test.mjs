@@ -6,6 +6,7 @@ import { carregarFontes } from '../scripts/lib/texto.mjs';
 import { layoutFluxo } from '../scripts/lib/layout-fluxo.mjs';
 import { emitirSvg, caminhoArredondado } from '../scripts/lib/svg.mjs';
 import { validar } from '../scripts/lib/modelo.mjs';
+import { TIPOS } from '../scripts/lib/cores.mjs';
 
 const fontes = await carregarFontes(fileURLToPath(new URL('../assets/fonts/', import.meta.url)));
 const ler = (n) => JSON.parse(readFileSync(new URL(`./fixtures/${n}`, import.meta.url), 'utf8'));
@@ -33,6 +34,9 @@ for (const nome of ['minimo.json', 'retorno.json', 'laco.json']) {
     assert.match(svg, /src:url\(data:font\/woff2;base64,/);
     assert.ok(!svg.includes('foreignObject'));
     assert.ok(!svg.includes('<script'));
+    // O <style> vai cru num documento XML: nenhum "<" ou "&" dentro dele (quebraria o parse do .svg).
+    const estilo = svg.slice(svg.indexOf('<style>') + 7, svg.indexOf('</style>'));
+    assert.ok(!/[<&]/.test(estilo), 'caractere de marcação dentro do <style>');
     // A única URL permitida é o identificador de namespace do SVG (não é recurso carregado):
     // sem ele o arquivo .svg não renderiza como imagem.
     const semNs = svg.replace(' xmlns="http://www.w3.org/2000/svg"', '');
@@ -46,32 +50,33 @@ for (const nome of ['minimo.json', 'retorno.json', 'laco.json']) {
     assert.deepEqual(new Set(corre), caminhoFeliz(d));
     for (const a of d.arestas) {
       const bloco = svg.slice(svg.indexOf(`data-id="${a.id}"`)).split('</g>')[0];
-      assert.match(bloco, /class="trace"/);
+      // id estável do path: alvo do mpath da animação SMIL (Task 14)
+      assert.match(bloco, new RegExp(`<path id="a-${a.id}" class="trace`));
       assert.match(bloco, /class="flow"/);
-      assert.match(bloco, /marker-end="url\(#seta-/);
     }
+    for (const n of d.nos) assert.match(svg, new RegExp(`<g id="n-${n.id}" class="no [^"]*" data-id="${n.id}"`));
     assert.match(svg, /prefers-reduced-motion/);
     assert.ok(Buffer.byteLength(svg) < 150 * 1024, `${Buffer.byteLength(svg)} bytes`);
   });
 }
 
-test('minimo: caminho feliz corre; legenda cita "caminho feliz" e não "gate"', async () => {
+test('minimo: caminho feliz corre; legenda cita o tipo padrão "chamada" e não "gate"', async () => {
   const d = ler('minimo.json');
   const svg = await gerar(d);
-  assert.match(svg, /<g class="aresta papel-feliz corre" data-id="a-b"/);
+  assert.match(svg, /<g class="aresta papel-feliz tipo-chamada corre" data-id="a-b"/);
   const legenda = legendaDe(svg);
-  assert.match(legenda, /caminho feliz/);
-  assert.doesNotMatch(legenda, /gate/i);
+  assert.match(legenda, />chamada</);
+  assert.doesNotMatch(legenda, /gate|retorno|proposto|RPC/i);
   assert.match(svg, /@keyframes fluxo/);
 });
 
 test('retorno: retorno tracejado, gate na legenda, cabeçalho e rodapé', async () => {
   const d = ler('retorno.json');
   const svg = await gerar(d);
-  assert.match(svg, /<g class="aresta papel-retorno" data-id="gate-build"/);
-  assert.match(svg, /\.aresta\.papel-retorno \.trace[^{]*\{[^}]*stroke-dasharray/);
+  assert.match(svg, /<g class="aresta papel-retorno tipo-chamada" data-id="gate-build"><path id="a-gate-build" class="trace ret"/);
+  assert.match(svg, /\.ret[^{]*\{[^}]*stroke-dasharray/);
   const legenda = legendaDe(svg);
-  for (const t of ['gate', 'retorno', 'caminho feliz']) assert.match(legenda, new RegExp(t));
+  for (const t of ['gate', 'retorno', 'chamada']) assert.match(legenda, new RegExp(`>${t}<`));
   assert.doesNotMatch(legenda, /falha|proposto|externo/);
   assert.match(svg, /class="titulo"[^>]*>Entrega com retorno</);
   assert.match(svg, /class="subtitulo"[^>]*>Falha na verificação volta para a construção</);
@@ -102,30 +107,100 @@ test('escapa & < > " de todo texto do modelo', async () => {
   assert.match(svg, /&lt;b&gt;&amp;&quot;/);
 });
 
-test('nivel proposto: contorno tracejado + selo; legenda cita proposto', async () => {
+test('nivel proposto: contorno tracejado (card e aresta); legenda cita proposto', async () => {
   const d = ler('minimo.json');
   d.nos[1].nivel = 'proposto';
   d.arestas[0].nivel = 'proposto';
   const svg = await gerar(d);
-  assert.match(svg, /<g class="no papel-neutro proposto" data-id="b"/);
-  assert.match(svg, /<g class="aresta papel-feliz corre proposto" data-id="a-b"/);
+  assert.match(svg, /<g id="n-b" class="no papel-neutro icone-servico proposto" data-id="b"/);
+  assert.match(svg, /<g class="aresta papel-feliz tipo-chamada corre proposto" data-id="a-b"/);
   assert.match(svg, /\.no\.proposto \.card[^{]*\{[^}]*stroke-dasharray/);
-  const card = svg.slice(svg.indexOf('data-id="b"')).split('</g>\n')[0];
-  assert.match(card, /class="selo"/);
-  assert.match(card, />proposto</);
-  assert.match(legendaDe(svg), /proposto/);
+  assert.match(svg, /\.aresta\.proposto \.trace[^{]*\{[^}]*stroke-dasharray/);
+  assert.match(legendaDe(svg), />proposto</);
 });
 
-test('tema claro: fundo claro e data-theme; animar:false sem animação em repouso', async () => {
+test('tema padrão é o claro da referência: fundo #f3f3f1 e grade de pontos de 24 px; escuro sob demanda', async () => {
   const d = ler('minimo.json');
-  const claro = await gerar(d, { tema: 'claro' });
-  assert.match(claro, /^<svg[^>]*data-theme="light"/);
+  const claro = await gerar(d);
+  assert.doesNotMatch(claro.split('\n')[0], /data-theme/);
   assert.match(claro, /<rect class="fundo"[^>]*fill="#f3f3f1"/);
-  const escuro = await gerar(d);
+  assert.match(claro, /<pattern id="grade" width="24" height="24" patternUnits="userSpaceOnUse">/);
+  assert.match(claro, /<rect class="grade"[^>]*fill="url\(#grade\)"/);
+  assert.equal(claro, await gerar(d, { tema: 'claro' }));
+  const escuro = await gerar(d, { tema: 'escuro' });
+  assert.match(escuro, /^<svg[^>]*data-theme="dark"/);
   assert.match(escuro, /<rect class="fundo"[^>]*fill="#0f0f0f"/);
   const parado = await gerar(d, { animar: false });
   assert.doesNotMatch(parado, /animation:\s*fluxo/);
   assert.equal(parado, await gerar(d, { animar: false }));
+});
+
+test('um ladrilho de ícone 30×30 com ícone em traço por nó; ícone padrão pelo papel; gate vermelho', async () => {
+  const d = ler('retorno.json');
+  const svg = await gerar(d);
+  assert.equal(conta(svg, '<rect class="ladrilho" '), d.nos.length);
+  assert.equal(conta(svg, '<path class="icone" '), d.nos.length);
+  assert.match(svg, /<rect class="ladrilho" x="[\d.]+" y="[\d.]+" width="30" height="30" rx="10"\/>/);
+  assert.match(svg, /<path class="icone" transform="translate\([\d.]+,[\d.]+\)" d="M/);
+  // retorno.json tem um nó gate: ícone gate e cor do papel gate
+  assert.match(svg, /<g id="n-gate" class="no papel-gate icone-gate" data-id="gate"/);
+  assert.match(svg, /\.no\.papel-gate \{\s*--c: var\(--p-gate\);/);
+  // ícone explícito vence o padrão do papel
+  const m = ler('minimo.json');
+  m.nos[0].icone = 'pessoa';
+  m.nos[1].papel = 'memoria';
+  const s2 = await gerar(m);
+  assert.match(s2, /<g id="n-a" class="no papel-neutro icone-pessoa" data-id="a"/);
+  assert.match(s2, /<g id="n-b" class="no papel-memoria icone-banco" data-id="b"/);
+});
+
+test('selo em pílula, escapado', async () => {
+  const d = ler('minimo.json');
+  d.nos[0].selo = 'M<&>"';
+  assert.ok(validar(d).ok);
+  const svg = await gerar(d);
+  const card = svg.slice(svg.indexOf('data-id="a"')).split('</g>\n')[0];
+  assert.match(card, /<g class="selo"><rect [^>]*height="21" rx="10.5"\/><text [^>]*>M&lt;&amp;&gt;&quot;<\/text><\/g>/);
+  assert.equal(conta(svg, '<g class="selo">'), 1);
+});
+
+test('cor do traço = cor do tipo da aresta (CSS do tipo e tokens)', async () => {
+  const d = ler('minimo.json');
+  d.arestas[0].tipo = 'rpc';
+  const svg = await gerar(d);
+  assert.match(svg, /<g class="aresta papel-feliz tipo-rpc corre" data-id="a-b"/);
+  assert.match(svg, /\.tipo-rpc \{\s*--c: var\(--t-rpc\);/);
+  assert.ok(svg.includes(`--t-rpc: ${TIPOS.claro.rpc};`));
+  assert.match(svg, /\.aresta \.trace \{[^}]*stroke: var\(--c\)/);
+  // legenda só com os tipos usados
+  const legenda = legendaDe(svg);
+  assert.match(legenda, />RPC</);
+  assert.doesNotMatch(legenda, />chamada<|>dados<|>evento<|>fila</);
+});
+
+test('requisicao: volta (~volta) tracejada com chevron na chegada, portas nas pontas, orçamento', async () => {
+  const d = ler('requisicao.json');
+  const L = await layoutFluxo(d, fontes);
+  const svg = emitirSvg(d, L, fontes);
+  const comResposta = d.arestas.filter((a) => a.resposta);
+  assert.ok(comResposta.length > 0);
+  for (const a of comResposta) {
+    const tipo = a.tipo || 'chamada';
+    const re = `<g class="aresta volta papel-${a.papel} tipo-${tipo}" data-id="${a.id}~volta"><path id="a-${a.id}~volta" class="trace ret"`;
+    assert.ok(svg.includes(re), re);
+    assert.ok(svg.includes(`>${a.resposta}<`), a.resposta);
+  }
+  const papel = (id) => d.arestas.find((x) => x.id === id)?.papel;
+  const ret = L.arestas.filter((a) => a.id.endsWith('~volta') || ['retorno', 'falha'].includes(papel(a.id)));
+  assert.equal(conta(svg, '<path class="chevron" '), ret.length);
+  const tiposUsados = new Set(d.arestas.map((a) => a.tipo || 'chamada')).size;
+  assert.equal(conta(svg, '<circle class="port" '), 2 * L.arestas.length + 2 * tiposUsados);
+  // portas e rótulos ficam por cima dos cards
+  assert.ok(svg.indexOf('<g class="portas">') > svg.indexOf('<g class="nos">'));
+  const legenda = legendaDe(svg);
+  for (const t of ['chamada', 'RPC', 'dados', 'evento', 'fila', 'retorno', 'proposto', 'gate'])
+    assert.match(legenda, new RegExp(`>${t}<`));
+  assert.ok(Buffer.byteLength(svg) < 150 * 1024, `${Buffer.byteLength(svg)} bytes`);
 });
 
 test('título largo alarga o canvas (texto não vaza)', async () => {
@@ -135,14 +210,6 @@ test('título largo alarga o canvas (texto não vaza)', async () => {
   const svg = emitirSvg(d, L, fontes);
   const [, w] = svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) /);
   assert.ok(Number(w) > L.largura, `${w} > ${L.largura}`);
-});
-
-test('retorno é vermelho: .papel-retorno no mesmo grupo de .papel-falha (--p-gate)', async () => {
-  const svg = await gerar(ler('retorno.json'));
-  const regra = svg.match(/^([^{}\n]*\.papel-falha[^{}\n]*)\{\s*--c:\s*var\(--p-gate\);\s*\}/m);
-  assert.ok(regra, 'regra de --c da falha');
-  assert.ok(regra[1].split(',').map((s) => s.trim()).includes('.papel-retorno'), regra[1]);
-  assert.doesNotMatch(svg, /\.papel-retorno[^{]*\{\s*--c:\s*var\(--p-neutro\)/);
 });
 
 test('id do modelo ausente no layout: erro que cita o id', async () => {
@@ -186,7 +253,7 @@ test('arestas com cotovelo saem com cantos arredondados no SVG; último trecho �
   assert.ok(comCotovelo.length > 0);
   for (const a of comCotovelo) {
     const bloco = svg.slice(svg.indexOf(`<g class="aresta`, svg.indexOf(`data-id="${a.id}"`) - 60));
-    const dTrace = /class="trace" d="([^"]+)"/.exec(bloco)[1];
+    const dTrace = /class="trace[^"]*" d="([^"]+)"/.exec(bloco)[1];
     assert.match(dTrace, /Q/, a.id);
     assert.match(dTrace, /L[\d.-]+,[\d.-]+$/, a.id);
   }

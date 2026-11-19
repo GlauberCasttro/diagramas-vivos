@@ -6,7 +6,12 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 import { ESTILO, quebrar, medir } from './texto.mjs';
 import { ROTULO_LINHA } from './geometria.mjs';
 
-export const CARD = { largura: 300, padX: 20, padY: 20, linhaNome: 22, linhaDescricao: 19, minAltura: 72 };
+// Card da referência (docs/referencia-visual/02-agente.svg): ladrilho de ícone 30×30 a (18,16), nome ao
+// lado (x 58, baseline 36, linhas de 20), descrição abaixo (baseline 69, linhas de 19), selo em pílula de
+// 21 px 13 px abaixo da última linha e 16 px de folga embaixo.
+export const CARD = {
+  largura: 300, padX: 18, padY: 16, icone: 30, nomeX: 58, linhaNome: 20, linhaDescricao: 19, selo: 21, minAltura: 72,
+};
 export const CABECALHO_ALTURA = 80; // título + subtítulo
 export const LEGENDA_ALTURA = 56;
 export const MARGEM = 32;
@@ -26,11 +31,25 @@ const ESPACOS = {
   'elk.spacing.edgeNode': '24',
 };
 
-export function alturaCard(linhasNome, linhasDescricao) {
-  return Math.max(
-    CARD.minAltura,
-    CARD.padY + CARD.linhaNome * linhasNome + CARD.linhaDescricao * linhasDescricao + CARD.padY,
-  );
+// Posições verticais (relativas ao topo do card) de cada linha e do selo, e a altura do card.
+export function geometriaCard(linhasNome, linhasDescricao, selo = false) {
+  const extraNome = CARD.linhaNome * Math.max(0, linhasNome - 1);
+  const nome = Array.from({ length: linhasNome }, (_, i) => 36 + CARD.linhaNome * i);
+  const descricao = Array.from({ length: linhasDescricao }, (_, j) => 69 + extraNome + CARD.linhaDescricao * j);
+  const ultima = descricao.length ? descricao[descricao.length - 1] : null;
+  let seloY = null;
+  let h;
+  if (selo) {
+    seloY = ultima !== null ? ultima + 13 : 56 + extraNome;
+    h = seloY + CARD.selo + 16;
+  } else {
+    h = ultima !== null ? ultima + 21 : 62 + extraNome;
+  }
+  return { nome, descricao, seloY, h: Math.max(CARD.minAltura, h) };
+}
+
+export function alturaCard(linhasNome, linhasDescricao, selo = false) {
+  return geometriaCard(linhasNome, linhasDescricao, selo).h;
 }
 
 const minimoZona = (w, direcao) => (direcao === 'DOWN' ? `(0,${w})` : `(${w},0)`);
@@ -38,12 +57,14 @@ const minimoZona = (w, direcao) => (direcao === 'DOWN' ? `(0,${w})` : `(${w},0)`
 export async function layoutFluxo(diagrama, fontes, opcoes = {}) {
   const direcao = opcoes.direcao || 'RIGHT';
   const conteudo = CARD.largura - 2 * CARD.padX;
+  const conteudoNome = CARD.largura - CARD.nomeX - CARD.padX; // nome divide a linha com o ladrilho
 
   const cards = new Map();
   for (const n of diagrama.nos) {
-    const linhasNome = quebrar(fontes, n.nome, ESTILO.nome, conteudo, 2);
+    const linhasNome = quebrar(fontes, n.nome, ESTILO.nome, conteudoNome, 2);
     const linhasDescricao = n.descricao ? quebrar(fontes, n.descricao, ESTILO.descricao, conteudo, 3) : [];
-    cards.set(n.id, { linhasNome, linhasDescricao, h: alturaCard(linhasNome.length, linhasDescricao.length) });
+    const h = alturaCard(linhasNome.length, linhasDescricao.length, Boolean(n.selo));
+    cards.set(n.id, { linhasNome, linhasDescricao, h });
   }
 
   const elkNo = (n) => ({ id: n.id, width: CARD.largura, height: cards.get(n.id).h });

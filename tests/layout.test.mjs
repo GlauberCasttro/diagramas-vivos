@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { validar } from '../scripts/lib/modelo.mjs';
 import { carregarFontes } from '../scripts/lib/texto.mjs';
-import { layoutFluxo } from '../scripts/lib/layout-fluxo.mjs';
+import { layoutFluxo, alturaCard } from '../scripts/lib/layout-fluxo.mjs';
 import { verificarGeometria } from '../scripts/lib/geometria.mjs';
 
 const fontes = await carregarFontes(fileURLToPath(new URL('../assets/fonts/', import.meta.url)));
@@ -62,11 +62,21 @@ test('retorno: geometria limpa, retorno dobra, nós dentro das zonas', async () 
   ortogonal(L);
 });
 
-test('altura do card segue a fórmula', async () => {
-  const L = await layoutFluxo(ler('retorno.json'), fontes);
+// Card da referência (02-agente.svg): ladrilho 30×30 no topo, nome ao lado (linhas de 20), descrição
+// abaixo (linhas de 19), selo em pílula de 21 px. 1 linha de descrição = 90, 2 = 109, 2 + selo = 138.
+test('altura do card segue a fórmula da referência', async () => {
+  assert.equal(alturaCard(1, 1), 90);
+  assert.equal(alturaCard(1, 2), 109);
+  assert.equal(alturaCard(1, 2, true), 138);
+  assert.equal(alturaCard(1, 0), 72);
+  assert.equal(alturaCard(2, 1), 110);
+  assert.equal(alturaCard(1, 0, true), 93);
+  const d = ler('retorno.json');
+  d.nos[0].selo = 'MCP';
+  const L = await layoutFluxo(d, fontes);
   for (const n of L.nos) {
-    const h = 20 + 22 * n.linhasNome.length + 19 * n.linhasDescricao.length + 20;
-    assert.equal(n.h, Math.max(72, h));
+    const selo = Boolean(d.nos.find((x) => x.id === n.id).selo);
+    assert.equal(n.h, alturaCard(n.linhasNome.length, n.linhasDescricao.length, selo), n.id);
     assert.ok(n.linhasNome.length <= 2 && n.linhasDescricao.length <= 3);
   }
 });

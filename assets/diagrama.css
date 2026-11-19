@@ -1,48 +1,66 @@
 /* Portions derived from floorplan (MIT) (c) 2026 Hayden Smith
    Origem: floorplan/assets/viewer.html (card :157-216 e arestas .trace/.flow :226-234), traduzido para SVG
-   puro (só rect/path/text). Diferença: aqui .flow das arestas com classe "corre" fica visível e animado em
-   repouso; o stepper (HTML) liga o mesmo efeito por .hl. */
+   puro (só rect/path/text/circle), no visual de docs/referencia-visual/02-agente.svg (tema claro padrão).
+   Diferença: aqui .flow das arestas com classe "corre" fica visível e animado em repouso; o stepper (HTML)
+   liga o mesmo efeito por .hl. */
 svg { font-family: var(--sans); }
 .fundo { fill: var(--bg); }
+#grade circle { fill: var(--grid); }
 
 /* ---------- cabeçalho, zonas, legenda ---------- */
-.titulo { fill: var(--text); font-weight: 700; font-size: 22px; }
+.titulo { fill: var(--text); font-weight: 700; font-size: 22px; letter-spacing: -.02em; }
 .subtitulo { fill: var(--text-2); font-weight: 400; font-size: 13px; }
 .zona rect { fill: rgba(var(--ink), .02); stroke: var(--hair-2); stroke-width: 1; stroke-dasharray: 6 6; }
 .nomes-zona text { fill: var(--text-3); font-weight: 600; font-size: 14px; paint-order: stroke; stroke: var(--bg); stroke-width: 6px; stroke-linejoin: round; }
+.legenda .separador { stroke: rgba(var(--ink), .08); stroke-width: 1; }
 .legenda text { fill: var(--text-2); font-weight: 500; font-size: 12px; }
-.legenda .amostra-no { fill: var(--surface); stroke: var(--c); stroke-width: 1.5; }
-.legenda .amostra-aresta { fill: none; stroke: var(--c); stroke-width: 2; stroke-linecap: round; }
-.legenda .proposto .amostra-no { stroke: var(--text-3); stroke-dasharray: 4 3; }
+.legenda .amostra { fill: none; stroke: var(--c); stroke-width: 1.3; stroke-linecap: round; }
+.legenda .retorno .amostra { stroke: var(--text-3); }
+.legenda .proposto rect { fill: none; stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 4 3; }
+.legenda .gate rect { fill: var(--c); fill-opacity: .13; stroke: var(--c); stroke-width: 1.3; }
 .rodape { fill: var(--text-3); font-weight: 500; font-size: 12px; }
 
-/* ---------- papéis ---------- */
-.papel-feliz { --c: var(--p-feliz); }
-.papel-gate, .papel-falha, .papel-retorno { --c: var(--p-gate); }
-.papel-memoria { --c: var(--p-memoria); }
-.papel-neutro, .papel-sequencia { --c: var(--p-neutro); }
-.papel-externo { --c: var(--p-externo); }
+/* ---------- cores: ícone/papel no card, tipo na aresta ---------- */
+.icone-pessoa { --c: var(--i-pessoa); }
+.icone-servico { --c: var(--i-servico); }
+.icone-ferramenta { --c: var(--i-ferramenta); }
+.icone-banco { --c: var(--i-banco); }
+.icone-gate { --c: var(--i-gate); }
+.icone-externo { --c: var(--i-externo); }
+.icone-fila { --c: var(--i-fila); }
+.icone-documento { --c: var(--i-documento); }
+.icone-agente { --c: var(--i-agente); }
+.no.papel-gate { --c: var(--p-gate); }
+.tipo-chamada { --c: var(--t-chamada); }
+.tipo-rpc { --c: var(--t-rpc); }
+.tipo-dados { --c: var(--t-dados); }
+.tipo-evento { --c: var(--t-evento); }
+.tipo-fila { --c: var(--t-fila); }
+.legenda .gate { --c: var(--p-gate); }
 
 /* ---------- cards ---------- */
-.no .card { fill: var(--surface); stroke: var(--hair-2); stroke-width: 1; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .55)); }
-:root[data-theme="light"] .no .card { filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .12)); }
-.no:not(.papel-neutro) .card { stroke: var(--c); stroke-opacity: .7; stroke-width: 1.5; }
-.no.papel-externo .card { fill: transparent; filter: none; }
-.no.proposto .card { stroke-dasharray: 6 5; }
-.no .nome { fill: var(--text); font-weight: 600; font-size: 15px; }
+.no .card { fill: var(--surface); stroke: var(--card-line); stroke-width: 1; filter: var(--card-shadow); }
+.no.papel-gate .card { stroke: var(--c); stroke-opacity: .7; stroke-width: 1.5; }
+.no.papel-externo .card { fill: none; filter: none; stroke: rgba(var(--ink), .18); stroke-width: 1.5; }
+.no.proposto .card { stroke: var(--text-3); stroke-dasharray: 6 5; }
+.no .ladrilho { fill: var(--c); fill-opacity: .13; }
+.no .icone { fill: none; stroke: var(--c); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.no .nome { fill: var(--text); font-weight: 600; font-size: 15px; letter-spacing: -.015em; }
 .no .descricao { fill: var(--text-2); font-weight: 400; font-size: 13px; }
-.selo rect { fill: var(--bg); stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 3 2; }
-.selo text { fill: var(--text-2); font-weight: 600; font-size: 10.5px; }
+.selo rect { fill: rgba(var(--ink), .05); }
+.selo text { fill: var(--text-3); font-weight: 400; font-size: 11.5px; }
 
 /* ---------- arestas ---------- */
 .aresta { color: var(--c); }
-.aresta .trace { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-opacity: .6; stroke-linecap: round; stroke-linejoin: round; }
-.aresta .flow { fill: none; stroke: currentColor; stroke-width: 2; stroke-dasharray: 2 10; stroke-linecap: round; opacity: 0; }
-.aresta.papel-retorno .trace, .aresta.papel-falha .trace, .aresta.proposto .trace { stroke-dasharray: 6 6; }
-.aresta.corre .trace, .aresta.hl .trace { stroke-opacity: 1; }
+.aresta .trace { fill: none; stroke: var(--c); stroke-width: 1.3; stroke-opacity: .5; stroke-linecap: round; stroke-linejoin: round; }
+.aresta .flow { fill: none; stroke: var(--c); stroke-width: 2; stroke-dasharray: 2 10; stroke-linecap: round; opacity: 0; }
+.ret, .aresta.proposto .trace { stroke-dasharray: 6 6; }
+.aresta.corre .trace, .aresta.hl .trace { stroke-opacity: .9; }
 .aresta.corre .flow, .aresta.hl .flow { opacity: .95; }
-.seta path { fill: var(--c); }
+.port { fill: var(--bg); stroke: var(--c); stroke-width: 1.5; }
+.chevron { fill: none; stroke: var(--c); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .rotulo rect { fill: var(--bg); }
 .rotulo text { fill: var(--c); font-weight: 500; font-size: 12px; }
 
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+/* Movimento reduzido (adendo 2): nada anima e o tracejado que corre some; o destaque fica no traço. */
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } .aresta .flow { display: none; } }
