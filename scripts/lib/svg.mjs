@@ -212,15 +212,17 @@ export function emitirSvg(diagrama, layout, fontes, opcoes = {}) {
 
   const porIdNo = new Map(layout.nos.map((n) => [n.id, n]));
   const porIdAresta = new Map(layout.arestas.map((a) => [a.id, a]));
+  // Layout incompleto é erro de quem chamou: nunca some um nó ou aresta do desenho em silêncio.
+  for (const n of diagrama.nos) if (!porIdNo.has(n.id)) throw new Error(`emitirSvg: nó "${n.id}" ausente no layout`);
+  for (const a of diagrama.arestas)
+    if (!porIdAresta.has(a.id)) throw new Error(`emitirSvg: aresta "${a.id}" ausente no layout`);
   const corre = caminhoFeliz(diagrama);
 
   const zonas = (layout.zonas || []).map(emitirZona).join('');
   const arestas = diagrama.arestas
-    .filter((a) => porIdAresta.has(a.id))
     .map((a) => emitirAresta(a, porIdAresta.get(a.id), corre.has(a.id), fontes))
     .join('');
   const nos = diagrama.nos
-    .filter((n) => porIdNo.has(n.id))
     .map((n) => emitirNo(n, porIdNo.get(n.id), fontes))
     .join('');
 

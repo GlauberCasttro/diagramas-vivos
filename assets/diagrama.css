@@ -18,9 +18,9 @@ svg { font-family: var(--sans); }
 
 /* ---------- papéis ---------- */
 .papel-feliz { --c: var(--p-feliz); }
-.papel-gate, .papel-falha { --c: var(--p-gate); }
+.papel-gate, .papel-falha, .papel-retorno { --c: var(--p-gate); }
 .papel-memoria { --c: var(--p-memoria); }
-.papel-neutro, .papel-sequencia, .papel-retorno { --c: var(--p-neutro); }
+.papel-neutro, .papel-sequencia { --c: var(--p-neutro); }
 .papel-externo { --c: var(--p-externo); }
 
 /* ---------- cards ---------- */

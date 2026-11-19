@@ -136,3 +136,20 @@ test('título largo alarga o canvas (texto não vaza)', async () => {
   const [, w] = svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) /);
   assert.ok(Number(w) > L.largura, `${w} > ${L.largura}`);
 });
+
+test('retorno é vermelho: .papel-retorno no mesmo grupo de .papel-falha (--p-gate)', async () => {
+  const svg = await gerar(ler('retorno.json'));
+  const regra = svg.match(/^([^{}\n]*\.papel-falha[^{}\n]*)\{\s*--c:\s*var\(--p-gate\);\s*\}/m);
+  assert.ok(regra, 'regra de --c da falha');
+  assert.ok(regra[1].split(',').map((s) => s.trim()).includes('.papel-retorno'), regra[1]);
+  assert.doesNotMatch(svg, /\.papel-retorno[^{]*\{\s*--c:\s*var\(--p-neutro\)/);
+});
+
+test('id do modelo ausente no layout: erro que cita o id', async () => {
+  const d = ler('retorno.json');
+  const L = await layoutFluxo(d, fontes);
+  const semNo = { ...L, nos: L.nos.filter((n) => n.id !== 'gate') };
+  assert.throws(() => emitirSvg(d, semNo, fontes), /gate/);
+  const semAresta = { ...L, arestas: L.arestas.filter((a) => a.id !== 'gate-build') };
+  assert.throws(() => emitirSvg(d, semAresta, fontes), /gate-build/);
+});
