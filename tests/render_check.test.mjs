@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, statSync, existsSync, mkdirSync, writeFileSync, chmodSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, statSync, existsSync, mkdirSync, writeFileSync, chmodSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -93,3 +93,15 @@ test('apaga capturas antigas (passo-*, svg-*, repouso-*) antes de capturar; outr
   for (const f of ['passo-09-escuro.png', 'passo-09-claro.png', 'svg-velho.png', 'repouso-velho.png']) assert.ok(!arquivos.includes(f), f);
   assert.ok(arquivos.includes('outro.png') && arquivos.includes('notas.txt'));
 });
+
+test('sem --saida: capturas vão para um diretório temporário fora do projeto, impresso no stdout', () => {
+  const d = geraBase();
+  const r = spawnSync('python3', [RENDER, join(d, '01-minimo.html')], { encoding: 'utf8', env: { ...process.env, DIAGRAMAS_VIVOS_CHROME: chromeFalso() } });
+  assert.equal(r.status, 0, r.stderr);
+  const linhas = r.stdout.trim().split('\n');
+  assert.ok(linhas.length > 0);
+  const esperado = join(realpathSync(tmpdir()), 'diagramas-vivos-capturas', '01-minimo');
+  for (const l of linhas) assert.ok(realpathSyncSafe(l).startsWith(esperado), l);
+  assert.equal(readdirSync(d).some((f) => f.endsWith('-capturas')), false);
+});
+const realpathSyncSafe = (p) => { try { return realpathSync(p); } catch { return p; } };

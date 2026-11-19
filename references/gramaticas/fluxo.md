@@ -1,6 +1,7 @@
-# Gramática fluxo (F0)
+# Gramática fluxo (F0.1)
 
-Diagrama de processo com zonas numeradas, nós em cards e setas direcionais. Formato: `references/modelo.md`.
+Diagrama de processo ou de requisição: componentes em cards, ligações com tipo e resposta, cenários que tocam
+no próprio SVG. Formato: `references/modelo.md`.
 
 ## Zonas
 - Agrupam etapas por fase. Nome no padrão `N · Título — o que acontece aqui` (ex.: "2 · Aprovação — humano
@@ -13,32 +14,39 @@ Diagrama de processo com zonas numeradas, nós em cards e setas direcionais. For
 - Papéis, com semântica fixa de cor: `feliz` (ator principal/caminho feliz, verde), `gate` (decisão, aprovação,
   falha de enforcement, vermelho), `memoria` (estado, registro, banco, azul), `neutro` (passo comum),
   `externo` (sistema ou pessoa fora do escopo).
-- `nivel: "proposto"` só para o que o Claude sugeriu e o usuário não confirmou (sai tracejado com selo);
+- `icone` (`pessoa`, `servico`, `ferramenta`, `banco`, `gate`, `externo`, `fila`, `documento`, `agente`; padrão
+  derivado do papel) e `selo` (até 12 caracteres, ex.: "MCP") deixam o card legível de relance.
+- `nivel: "proposto"` só para o que o Claude sugeriu e o usuário não confirmou (sai tracejado);
   o que o usuário informou é `informado` (padrão). `inferido` não existe na F0.
 - Mantenha cerca de 8 a 20 nós. Acima disso, divida em dois diagramas.
 
 ## Arestas
-- `sequencia` (cinza): ordem normal. `feliz` (verde): o caminho feliz. `retorno` (vermelho tracejado): volta
-  a etapa anterior ou laço. `falha`: ramo que segue adiante em direção ao erro/desfazer.
-- Use `retorno` só para voltar para trás no tempo. Ramo de falha que avança (rollback, alerta) é `falha`: com
-  `retorno` o layout o desenha acima do nó de origem.
-- `rotulo` curto e só quando a seta precisa dizer a condição ("falhou", "aprovado"). Cada rótulo aumenta o
-  espaço entre camadas.
-- Não há rótulo solto: texto que não pertence a uma seta vai na `nota` do passo ou na `descricao` do nó.
+- `de`/`para` apontam para nós. `tipo` (opcional) dá a cor da ligação: `chamada` (padrão), `rpc`, `dados`,
+  `evento`, `fila`. A legenda do SVG lista os tipos usados.
+- `resposta` (texto de 1 a 40 caracteres) gera a **volta tracejada** na mesma ligação (do `para` ao `de`),
+  na cor do tipo, com o texto como rótulo. Não modele a resposta como segunda aresta.
+- `papel`: `sequencia` (ordem normal), `feliz` (caminho feliz), `retorno` (volta a etapa anterior ou laço,
+  tracejado) e `falha` (ramo que segue adiante em direção ao erro/desfazer). Use `retorno` só para voltar no
+  tempo; rollback e alerta são `falha` (com `retorno` o layout os desenha acima do nó de origem).
+- `rotulo` curto e só quando a seta precisa dizer a condição ou o verbo ("POST /pedidos", "valida"). Texto que
+  não pertence a uma seta vai na `nota` do passo ou na `descricao` do nó.
 
-## Flow
-- Pelo menos 1 flow, com 2+ passos. O **primeiro flow** é o caminho feliz: só as arestas dele correm em repouso.
-- Cada passo: `ref` (id de nó ou aresta) + `nota` (uma frase, o que acontece e por quê). Percorra nó, aresta,
-  nó, na ordem em que a história acontece. Outros flows (ex.: "Caminho de falha") são opcionais.
+## Flows (cenários)
+- Cada flow é um cenário de requisição; pelo menos 1, com 2+ passos. O **primeiro flow** é o caminho feliz e
+  toca primeiro. No SVG, cada cenário vira uma linha de legenda no rodapé ("N. Título: A → B → C") e a bolinha
+  percorre as ligações dele em loop.
+- Cada passo é `{ref, nota, sentido?}`. Para percorrer uma ligação, o `ref` é a **aresta**: `sentido` ausente
+  ou `"ida"` vai de `de` a `para`; `"volta"` percorre a resposta e exige `resposta` na aresta.
+- **Passo de nó só no começo e no fim** do cenário (quem origina a requisição, quem recebe o resultado). No
+  meio, cada passo é uma aresta, na ordem em que a história acontece, ida e volta incluídas.
 
-## Direção (`--direcao`, derivado de `docs/f0-resultado.md`)
-- `DOWN` (cima para baixo, padrão do CLI): recomendado para fluxos longos ou com muitas camadas (cerca de 8 ou mais
-  nós em sequência, ou com retornos). Em RIGHT cada etapa vira uma coluna: fluxos longos ficam com
-  proporção 5:1 a 6:1 e não cabem na tela nem no zoom do passo a passo; em DOWN ficam 0,5 a 0,8 de largura
-  por altura e se leem rolando.
-- `RIGHT` (esquerda para direita): só para fluxos curtos (até cerca de 5 a 6 nós em linha,
-  poucos retornos), que cabem numa tela larga.
-- Na dúvida, `DOWN`.
+## Direção e proporção (`--direcao`)
+- Padrão **`RIGHT`**: colunas da esquerda para a direita, cards de 300 px, 120 px entre colunas. É o formato
+  compacto da referência (`docs/referencia-visual/02-agente.svg`).
+- Mire numa proporção largura:altura de **1 a 3**. Os exemplos `agente` (1204 × 628) e `requisicao`
+  (1846 × 796) ficam nessa faixa. Cadeias muito longas em linha (a partir de ~8 etapas, ou com muitos
+  retornos) passam de 5:1 em RIGHT (`fluxo-card` 7235 × 1114): divida em dois diagramas, agrupe em zonas, ou
+  use `--direcao DOWN` para ler rolando.
 
 ## Limites conhecidos
 - O layout usa uma direção só para o diagrama inteiro; não dá para ter zonas empilhadas com nós em linha

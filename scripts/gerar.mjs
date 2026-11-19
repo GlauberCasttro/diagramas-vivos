@@ -110,7 +110,9 @@ async function main() {
   const avisos = cobertura(fontes, textos(diagrama));
   const svg = emitirSvg(diagrama, layout, fontes);
   const html = emitirHtml(diagrama, layout, svg);
-  const bytes = { svg: Buffer.byteLength(svg), html: Buffer.byteLength(html) };
+  // Declaração XML só no arquivo .svg (guarda contra servir como não-UTF-8); o HTML embute o SVG sem ela.
+  const svgArquivo = `<?xml version="1.0" encoding="UTF-8"?>\n${svg}`;
+  const bytes = { svg: Buffer.byteLength(svgArquivo), html: Buffer.byteLength(html) };
   const violacoes = avaliar(layout, bytes);
 
   const dir = resolve(args.saida);
@@ -125,7 +127,7 @@ async function main() {
     html: join(dir, `${base}.html`),
     modelo: join(dir, `${base}.diagram.json`),
   };
-  writeFileSync(arquivos.svg, svg);
+  writeFileSync(arquivos.svg, svgArquivo);
   writeFileSync(arquivos.html, html);
   writeFileSync(arquivos.modelo, `${JSON.stringify(diagrama, null, 2)}\n`);
   sair({ arquivos, bytes, violacoes, avisos, roteador: args.roteador, direcao: args.direcao }, violacoes.length ? 2 : 0);

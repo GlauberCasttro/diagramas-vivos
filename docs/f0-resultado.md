@@ -129,3 +129,33 @@ python3 scripts/render_check.py exemplos/<nome>/01-*.html   # capturas em <stem>
 ```
 
 Trocar `--roteador libavoid` dá o ramo B; `--direcao RIGHT` dá a versão horizontal.
+
+## F0.1 — requisição viva (2026-11-19)
+
+O que mudou em relação à F0:
+- O **SVG vivo é o entregável principal**: cenários SMIL (uma bolinha por ligação, chegada no card, `.flow` só
+  no cenário ativo, legendas no rodapé), sem JavaScript; o HTML virou o passo a passo opcional (câmera fixa).
+- Modelo: `icone`, `selo` (nó), `tipo`, `resposta` (aresta), `sentido` (passo); ids `^[A-Za-z0-9_-]+$`.
+- Layout compacto, **RIGHT por padrão** (cards de 300 px, 120 px entre colunas); visual claro da referência
+  `docs/referencia-visual/02-agente.svg`; tema escuro por `data-theme="dark"`.
+- O arquivo `.svg` ganhou `<?xml version="1.0" encoding="UTF-8"?>` (+39 B, só no arquivo; o HTML embute o SVG
+  sem ela). Passou nos testes e no orçamento.
+- Menos ruído no git: as saídas geradas dos exemplos (`exemplos/*/NN-*`) saíram do versionamento (só
+  `exemplos/*/diagram.json` fica) e o `render_check.py` grava as capturas numa pasta temporária
+  (`<tmp>/diagramas-vivos-capturas/<stem>/`).
+
+Tamanhos e proporções (ELK, RIGHT, 0 violações; SVG/HTML em bytes, SVG sem a linha XML):
+
+| Exemplo | Canvas | Proporção | SVG | HTML |
+|---|---|---|---|---|
+| agente (novo) | 1204 × 628 | 1,9:1 | 84 654 | 109 687 |
+| requisicao (novo) | 1846 × 796 | 2,3:1 | 94 653 | 120 375 |
+| deploy | 3410 × 988 | 3,5:1 | 87 862 | 113 697 |
+| fluxo-card | 7235 × 1114 | 6,5:1 | 99 011 | 126 074 |
+| skill | 4728 × 887 | 5,3:1 | 91 844 | 118 083 |
+
+Os dois exemplos novos ficam na faixa de proporção 1 a 3. Os três da F0 (cadeias longas) continuam acima
+de 3:1 em RIGHT, mais largos que na F0 (cards de 300 px em vez de 260 px); para eles, `--direcao DOWN` segue
+sendo o formato de leitura. Limites: SVG < 153 600 B, HTML < 307 200 B (folga de ~35%).
+
+Para gerar localmente: veja "Como usar" no README (as saídas não são versionadas).

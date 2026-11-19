@@ -1,0 +1,32 @@
+{
+  "versao": 1,
+  "tipo": 1,
+  "gramatica": "fluxo",
+  "titulo": "Agente com ferramentas e memória",
+  "subtitulo": "Exemplo da skill. Um pedido do usuário passa pelo planejador, usa ferramentas e volta como resposta.",
+  "nos": [
+    { "id": "usuario", "nome": "Usuário", "descricao": "Faz o pedido em linguagem natural.", "papel": "neutro", "icone": "pessoa" },
+    { "id": "planejador", "nome": "Planejador", "descricao": "Decide o próximo passo: responder ou chamar uma ferramenta.", "papel": "feliz", "icone": "servico" },
+    { "id": "ferramentas", "nome": "Ferramentas", "descricao": "Busca, leitura de arquivos e execução de comandos.", "papel": "neutro", "icone": "ferramenta", "selo": "MCP" },
+    { "id": "memoria", "nome": "Memória", "descricao": "Guarda fatos e resultados entre os passos.", "papel": "memoria", "icone": "banco" },
+    { "id": "revisor", "nome": "Revisor", "descricao": "Confere a resposta antes de entregar.", "papel": "neutro", "icone": "agente", "nivel": "proposto" }
+  ],
+  "arestas": [
+    { "id": "pede", "de": "usuario", "para": "planejador", "papel": "feliz", "tipo": "chamada", "rotulo": "pedido" },
+    { "id": "chama", "de": "planejador", "para": "ferramentas", "papel": "feliz", "tipo": "rpc", "rotulo": "tool call", "resposta": "resultado" },
+    { "id": "lembra", "de": "planejador", "para": "memoria", "papel": "feliz", "tipo": "dados", "rotulo": "grava" },
+    { "id": "revisa", "de": "planejador", "para": "revisor", "papel": "sequencia", "tipo": "chamada", "nivel": "proposto" }
+  ],
+  "flows": [
+    { "id": "f1", "titulo": "Pedido com uso de ferramenta", "passos": [
+      { "ref": "pede", "nota": "O usuário faz o pedido." },
+      { "ref": "chama", "nota": "O planejador chama uma ferramenta." },
+      { "ref": "chama", "sentido": "volta", "nota": "A ferramenta devolve o resultado." },
+      { "ref": "lembra", "nota": "O planejador grava o resultado na memória." }
+    ] },
+    { "id": "f2", "titulo": "Resposta revisada", "passos": [
+      { "ref": "pede", "nota": "O usuário faz o pedido." },
+      { "ref": "revisa", "nota": "O revisor confere a resposta." }
+    ] }
+  ]
+}

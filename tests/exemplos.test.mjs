@@ -39,3 +39,17 @@ for (const nome of EXEMPLOS) {
     });
   }
 }
+
+// Exemplos da F0.1 (requisição viva): ida e volta, ícones, tipos; direção padrão RIGHT.
+for (const nome of ['agente', 'requisicao']) {
+  test(`${nome}: modelo válido e gera em RIGHT (padrão) sem violações`, () => {
+    const d = JSON.parse(readFileSync(caminho(nome), 'utf8'));
+    assert.deepEqual(validar(d).erros, []);
+    const saida = mkdtempSync(join(tmpdir(), 'dv-ex-'));
+    const r = spawnSync('node', [GERAR, caminho(nome), '--saida', saida], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    const j = JSON.parse(r.stdout);
+    assert.deepEqual(j.violacoes, []);
+    assert.equal(j.direcao, 'RIGHT');
+  });
+}

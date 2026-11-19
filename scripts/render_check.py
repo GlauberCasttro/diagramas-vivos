@@ -18,7 +18,8 @@ nao tem; o tema "auto" segue prefers-color-scheme. Por isso o tema vem de
 --blink-settings=preferredColorScheme=N: 0 = escuro, 1 = claro (confirmado pelo
 fundo das capturas). O SVG avulso e claro por padrao (referencia visual); para o
 escuro e capturado uma copia temporaria com data-theme="dark" na raiz.
-Saida padrao: pasta irma <stem>-capturas/.
+Saida padrao: <tmp>/diagramas-vivos-capturas/<stem>/ (fora do projeto); os caminhos
+sao impressos no stdout.
 """
 import argparse
 import glob
@@ -95,7 +96,8 @@ def main():
         if not os.path.isfile(p):
             print(f"FAIL: arquivo vizinho ausente: {p}", file=sys.stderr)
             return 1
-    saida = os.path.abspath(a.saida) if a.saida else stem + "-capturas"
+    saida = os.path.abspath(a.saida) if a.saida else os.path.join(
+        tempfile.gettempdir(), "diagramas-vivos-capturas", os.path.basename(stem))
     os.makedirs(saida, exist_ok=True)
     # Capturas antigas (ex.: passos de um modelo que tinha mais passos) nunca se misturam com as novas.
     for padrao in ("svg-*.png", "repouso-*.png", "passo-*.png"):

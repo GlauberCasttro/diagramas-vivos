@@ -4,3 +4,4 @@ node_modules/
 *.png
 out/
 *-capturas/
+exemplos/*/[0-9][0-9]-*

@@ -142,3 +142,11 @@ test('--direcao: padrão RIGHT; DOWN muda o layout e é informada; inválida dá
   assert.equal(r3.status, 1);
   assert.deepEqual(readdirSync(d2), []);
 });
+
+test('arquivo .svg começa com a declaração XML UTF-8; o HTML embute o SVG sem ela', () => {
+  const d = tmp();
+  assert.equal(rodar([MINIMO, '--saida', d, '--nome', '01-minimo']).status, 0);
+  const svg = readFileSync(join(d, '01-minimo.svg'), 'utf8');
+  assert.ok(svg.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<svg'));
+  assert.equal(readFileSync(join(d, '01-minimo.html'), 'utf8').includes('<?xml'), false);
+});
