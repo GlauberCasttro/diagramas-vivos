@@ -47,3 +47,23 @@ test('aresta papel retorno é válido', () => {
 test('aresta papel gate é inválido', () => {
   const d = base(); d.arestas[0].papel = 'gate'; temErro(d, 'arestas[a-b].papel');
 });
+test('zona com id igual ao de um nó: id duplicado', () => {
+  const d = base(); d.zonas = [{ id: 'a', nome: 'Zona A' }]; d.nos[0].zona = 'a'; d.nos[1].zona = 'a';
+  temErro(d, 'id duplicado: a');
+});
+test('zona com id igual ao de uma aresta: id duplicado', () => {
+  const d = base(); d.zonas = [{ id: 'a-b', nome: 'Zona' }]; d.nos[0].zona = 'a-b';
+  temErro(d, 'id duplicado: a-b');
+});
+test('passo de flow não pode referenciar zona', () => {
+  const d = base(); d.zonas = [{ id: 'z1', nome: 'Zona' }]; d.nos[0].zona = 'z1';
+  d.flows[0].passos[1].ref = 'z1'; temErro(d, 'flows[f1].passos[1].ref: z1');
+});
+test('zona sem nós é erro de validação', () => {
+  const d = base(); d.zonas = [{ id: 'z1', nome: 'Zona' }, { id: 'z2', nome: 'Vazia' }]; d.nos[0].zona = 'z1';
+  temErro(d, 'zonas[z2]: sem nós');
+});
+test('zonas com nós são válidas', () => {
+  const d = base(); d.zonas = [{ id: 'z1', nome: 'Zona' }]; d.nos[0].zona = 'z1';
+  assert.equal(validar(d).ok, true);
+});

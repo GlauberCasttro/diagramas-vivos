@@ -55,6 +55,9 @@ export function validar(d) {
   });
 
   const nosIds = new Set(nos.filter(obj).map((n) => n.id));
+  // Zona sem nós vira uma caixa vazia com o nome vazando: erro, não desenho.
+  const zonasUsadas = new Set(nos.filter(obj).map((n) => n.zona));
+  for (const z of zonaIds) if (!zonasUsadas.has(z)) erros.push(`zonas[${z}]: sem nós`);
   const arestas = lista(d.arestas, 'arestas');
   arestas.forEach((a, i) => {
     if (!obj(a) || !str(a.id)) return erros.push(`arestas[${i}].id: obrigatório`);
@@ -65,6 +68,10 @@ export function validar(d) {
     if (!PAPEIS_ARESTA.includes(a.papel)) erros.push(`${r}.papel: ${a.papel} (aceita ${PAPEIS_ARESTA.join('|')})`);
     nivel(a, r);
   });
+
+  // Zonas, nós e arestas viram nós do mesmo grafo de layout: ids não podem colidir. As zonas ficam fora
+  // de `ids` para que passo de flow nunca as referencie.
+  for (const z of zonaIds) if (ids.has(z)) erros.push(`id duplicado: ${z}`);
 
   if (!Array.isArray(d.flows) || d.flows.length < 1) {
     erros.push('flows: mínimo 1');
