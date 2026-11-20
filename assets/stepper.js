@@ -182,7 +182,11 @@
     b.hidden = v.hidden = semMovimento();
     b.textContent = pausado ? '\u25B6' : '\u275A\u275A';
     b.setAttribute('aria-label', pausado ? 'Retomar' : 'Pausar');
-    v.textContent = `${String(vel).replace('.', ',')}\u00D7`;
+    b.title = pausado ? 'Retomar a animação (Espaço)' : 'Pausar a animação (Espaço)';
+    // aria-label fixo ("Velocidade"); a velocidade atual vai no title, que vira a descrição acessível
+    const rotulo = `${String(vel).replace('.', ',')}\u00D7`;
+    v.textContent = rotulo;
+    v.title = `Velocidade: ${rotulo} (clique para trocar; [ e ] ajustam)`;
     root.style.setProperty('--vel', String(vel));
     root.classList.toggle('pausado', pausado);
   }
@@ -219,9 +223,10 @@
     else if (ev.key === 'ArrowLeft') { ev.preventDefault(); anterior(); }
     else if (ev.key === 'Escape') sair();
     // Espaço: no passo a passo toca/pausa os passos; fora dele pausa/retoma a animação (Enter ativa botões)
-    else if (ev.key === ' ') { ev.preventDefault(); if (atual > 0) tocar(); else alternarPausa(); }
-    else if (ev.key === '[') passoVel(-1);
-    else if (ev.key === ']') passoVel(1);
+    // Movimento reduzido: pausa e velocidade estão ocultas, então as teclas não mexem nesse estado
+    else if (ev.key === ' ') { ev.preventDefault(); if (atual > 0) tocar(); else if (!semMovimento()) alternarPausa(); }
+    else if (ev.key === '[') { if (!semMovimento()) passoVel(-1); }
+    else if (ev.key === ']') { if (!semMovimento()) passoVel(1); }
     else if (ev.key === '+' || ev.key === '=') zoomPor(1.2);
     else if (ev.key === '-') zoomPor(0.83);
     else if (ev.key === '0') ajustar(true);

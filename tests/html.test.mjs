@@ -174,6 +174,7 @@ addEventListener('load', async () => {
   dispatchEvent(new KeyboardEvent('keydown', { key: ']' }));
   dispatchEvent(new KeyboardEvent('keydown', { key: ']' }));
   out.rotVel = document.querySelector('button[aria-label="Velocidade"]').textContent;
+  out.titVel = document.querySelector('button[aria-label="Velocidade"]').title;
   out.v2 = await ate2a();
   out.varVel = getComputedStyle(document.documentElement).getPropertyValue('--vel').trim();
   try { out.memoria = localStorage.getItem('diagramas-vivos-vel'); } catch (e) {}
@@ -185,8 +186,8 @@ addEventListener('load', async () => {
   clicar('Pausar');
   const p0 = s.getCurrentTime(); await espera(400); const p1 = s.getCurrentTime();
   out.pausa = { p0, p1, estado: getComputedStyle(document.querySelector('.flow-repouso')).animationPlayState,
-    rot: document.getElementById('r-tocar').getAttribute('aria-label') };
-  clicar('Retomar'); await espera(300); out.retoma = s.getCurrentTime() > p1;
+    rot: document.getElementById('r-tocar').getAttribute('aria-label'), tit: document.getElementById('r-tocar').title };
+  clicar('Retomar'); await espera(300); out.retoma = s.getCurrentTime() > p1; out.titTocando = document.getElementById('r-tocar').title;
   const k0 = escala(); clicar('Aproximar'); const k1 = escala(); clicar('Afastar'); clicar('Afastar'); const k2 = escala();
   dispatchEvent(new KeyboardEvent('keydown', { key: '0' })); const k3 = escala();
   document.getElementById('palco').dispatchEvent(new WheelEvent('wheel', { deltaY: -200, clientX: 400, clientY: 300, bubbles: true, cancelable: true }));
@@ -206,6 +207,9 @@ addEventListener('load', async () => {
   t.diagnostic(`1×: ${out.v1} ms, 2×: ${out.v2} ms (razão ${r.toFixed(3)}); zoom ${JSON.stringify(out.zoom)}`);
   assert.ok(r > 0.4 && r < 0.6, `2× / 1× = ${r.toFixed(2)} (${out.v1} ms vs ${out.v2} ms)`);
   assert.equal(out.rotVel, '2×');
+  assert.equal(out.titVel, 'Velocidade: 2× (clique para trocar; [ e ] ajustam)', 'velocidade atual exposta no title');
+  assert.equal(out.pausa.tit, 'Retomar a animação (Espaço)');
+  assert.equal(out.titTocando, 'Pausar a animação (Espaço)');
   assert.equal(out.varVel, '2');
   assert.equal(out.memoria, '2');
   const r025 = out.v025 / out.v1;
@@ -223,4 +227,29 @@ addEventListener('load', async () => {
   assert.ok(z.k2 < z.k1, `− diminui: ${z.k1} → ${z.k2}`);
   assert.equal(z.k3, z.k0, '0 reenquadra');
   assert.ok(z.k4 > z.k3, `roda aproxima: ${z.k3} → ${z.k4}`);
+});
+
+// Movimento reduzido: os controles de reprodução somem e as teclas [, ] e Espaço (fora do passo) não mexem
+// no estado escondido.
+test('movimento reduzido no Chrome: [ ] e Espaço não mudam velocidade nem pausa', { skip: !CHROME && 'Chrome ausente', timeout: 90000 }, async () => {
+  const { html } = await gerar(ler('agente.json'));
+  const sonda = `<pre id="sonda"></pre><script>
+addEventListener('load', () => {
+  const kd = (k) => dispatchEvent(new KeyboardEvent('keydown', { key: k }));
+  const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  kd(']'); kd(']'); kd('['); kd('['); kd('['); kd(' ');
+  let mem = 'erro'; try { mem = localStorage.getItem('diagramas-vivos-vel'); } catch (e) {}
+  document.getElementById('sonda').textContent = JSON.stringify({ reduz, mem,
+    vel: document.getElementById('r-vel').textContent, varVel: getComputedStyle(document.documentElement).getPropertyValue('--vel').trim(),
+    pausado: document.documentElement.classList.contains('pausado'),
+    oculto: [document.getElementById('r-tocar').hidden, document.getElementById('r-vel').hidden] });
+});
+</script>`;
+  const out = sondarChrome(html.replace('</body>', `${sonda}</body>`), { flags: ['--force-prefers-reduced-motion'] });
+  assert.equal(out.reduz, true, 'Chrome emulou movimento reduzido');
+  assert.deepEqual(out.oculto, [true, true]);
+  assert.equal(out.vel, '1×');
+  assert.equal(out.varVel, '1');
+  assert.equal(out.mem, null, 'nada gravado');
+  assert.equal(out.pausado, false);
 });
