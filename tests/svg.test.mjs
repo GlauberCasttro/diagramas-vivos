@@ -391,3 +391,42 @@ addEventListener('load', async () => {
   assert.deepEqual(out['2.9'].map((t) => t.href), ['#a-lembra']);
   assert.notDeepEqual([out['0.7'][0].x, out['0.7'][0].y], [out['1.3'][0].x, out['1.3'][0].y]);
 });
+
+// ---------- F0.2: tudo em movimento ----------
+// Em repouso toda aresta (ida e volta) mostra um tracejado fraco correndo devagar, na cor do tipo; o .flow
+// forte do cenário (SMIL) continua por cima. Movimento reduzido: o tracejado de repouso some.
+for (const nome of ['agente.json', 'minimo.json', 'retorno.json', 'laco.json', 'requisicao.json']) {
+  test(`${nome}: toda aresta (inclusive volta) tem .flow-repouso abaixo do .flow`, async () => {
+    const d = ler(nome);
+    const L = await layoutFluxo(d, fontes);
+    const svg = emitirSvg(d, L, fontes);
+    const blocos = [...svg.matchAll(/<g class="aresta [^"]*" data-id="([^"]+)">([\s\S]*?)<\/g>\n/g)];
+    assert.equal(blocos.length, L.arestas.length);
+    if (nome === 'requisicao.json') assert.ok(blocos.some((b) => b[1].endsWith('~volta')), 'fixture tem volta');
+    for (const [, id, corpo] of blocos) {
+      const trace = /<path id="[^"]+" class="trace[^"]*" d="([^"]+)"/.exec(corpo);
+      const rep = /<path class="flow-repouso" d="([^"]+)"\/>/.exec(corpo);
+      assert.ok(rep, `${id}: sem .flow-repouso`);
+      assert.equal(rep[1], trace[1], `${id}: mesmo traçado`);
+      assert.ok(corpo.indexOf('flow-repouso') < corpo.indexOf('class="flow"'), `${id}: repouso abaixo do .flow`);
+    }
+    assert.ok(Buffer.byteLength(svg) < 150 * 1024, `${Buffer.byteLength(svg)} bytes`);
+  });
+}
+
+test('.flow-repouso: cor do tipo, opacidade baixa, animação CSS contínua com --vel; reduced-motion desliga', async () => {
+  const svg = await gerar(ler('requisicao.json'));
+  const estilo = svg.slice(svg.indexOf('<style>') + 7, svg.indexOf('</style>'));
+  const regra = (sel) => [...estilo.matchAll(/([^{}]+)\{([^}]*)\}/g)].filter((m) => m[1].includes(sel)).map((m) => m[2]).join(';');
+  const base = regra('.flow-repouso');
+  assert.match(base, /stroke:\s*var\(--c\)/);
+  const op = /(?:^|;)\s*opacity:\s*([\d.]+)/.exec(base);
+  assert.ok(op && +op[1] >= 0.25 && +op[1] <= 0.45, `opacity ${op?.[1]}`);
+  assert.match(base, /animation:\s*fluxo calc\([\d.]+s \/ var\(--vel, 1\)\) linear infinite/);
+  // o .flow forte também acompanha a velocidade
+  assert.match(estilo, /\.aresta \.flow \{ animation: fluxo calc\(1\.1s \/ var\(--vel, 1\)\) linear infinite; \}/);
+  const reduz = estilo.slice(estilo.indexOf('@media (prefers-reduced-motion: reduce)'));
+  assert.match(reduz, /\.flow-repouso[^{}]*\{[^}]*display: none/);
+  // sem animação (animar:false), nada de repouso que corre
+  assert.doesNotMatch(await gerar(ler('requisicao.json'), { animar: false }), /class="flow-repouso"/);
+});

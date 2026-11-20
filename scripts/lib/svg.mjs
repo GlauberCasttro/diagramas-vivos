@@ -36,8 +36,10 @@ function cssBase() {
 }
 
 // O tracejado corre em todas as arestas; quem decide se aparece é o atributo opacity (SMIL no SVG vivo,
-// .hl/.dim no passo a passo do HTML).
-const ANIMACAO = `.aresta .flow { animation: fluxo 1.1s linear infinite; }
+// .hl/.dim no passo a passo do HTML). Em repouso (F0.2), toda aresta mostra o .flow-repouso fraco correndo
+// devagar. --vel (padrão 1) é a velocidade escolhida na barra de reprodução do HTML; o SVG avulso usa 1.
+const ANIMACAO = `.aresta .flow { animation: fluxo calc(1.1s / var(--vel, 1)) linear infinite; }
+.aresta .flow-repouso { animation: fluxo calc(2.4s / var(--vel, 1)) linear infinite; }
 @keyframes fluxo { to { stroke-dashoffset: -24; } }`;
 
 export function esc(t) {
@@ -165,7 +167,9 @@ function emitirAresta(id, aresta, geo, { volta, corre }, vivo) {
   const sets = vivo?.sets.get(id) || [];
   const op = vivo ? '0' : corre ? '.95' : '0';
   const flow = sets.length ? `<path class="flow" d="${d}" opacity="${op}">${sets.join('')}</path>` : `<path class="flow" d="${d}" opacity="${op}"/>`;
-  return `<g class="${cls}" data-id="${esc(id)}"><path id="a-${esc(idDom(id))}" class="trace${ret ? ' ret' : ''}" d="${d}"/>${flow}</g>\n`;
+  // Repouso (F0.2): tracejado fraco que corre sempre, abaixo do .flow forte do cenário.
+  const repouso = vivo ? `<path class="flow-repouso" d="${d}"/>` : '';
+  return `<g class="${cls}" data-id="${esc(id)}"><path id="a-${esc(idDom(id))}" class="trace${ret ? ' ret' : ''}" d="${d}"/>${repouso}${flow}</g>\n`;
 }
 
 // Rótulo em pílula, portas nas pontas e, nas arestas de retorno, chevron na chegada (acima dos cards).
