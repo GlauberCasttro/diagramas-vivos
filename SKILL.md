@@ -7,7 +7,7 @@ description: Gera diagramas de engenharia "vivos" (SVG animado com setas que cor
 
 O entregável principal é o **SVG vivo**: um único arquivo que **toca sozinho** (uma bolinha percorre cada
 ligação, cenário por cenário, em loop, sem JavaScript) e funciona em PR, README e preview do VS Code. Junto
-vem o **HTML com passo a passo** (setas `←`/`→` ou `#passo=N`). As **capturas PNG são só verificação** e
+vem o **HTML com controles e passo a passo** (pausar, velocidade, zoom; setas `←`/`→` ou `#passo=N`). As **capturas PNG são só verificação** e
 vão para uma pasta temporária, nunca para o projeto.
 
 Saída em `docs/diagramas/` do projeto atual: `NN-slug.svg` (vivo), `NN-slug.html` (passo a passo) e
@@ -136,6 +136,8 @@ ordem: (1) remova as zonas; (2) encurte a cadeia (hubs com irmãos em vez de nó
    a verificação visual **não aconteceu**: nunca trate como aprovado. Na entrega, diga que a verificação
    visual foi pulada e por quê (a mensagem do stderr). Chrome fora do lugar padrão: aponte o executável em
    `DIAGRAMAS_VIVOS_CHROME=/caminho/do/chrome` e rode de novo.
-6. **Entregar.** Diga os caminhos: o **`.svg`** é o diagrama vivo, para embutir em PR/README (abre sozinho
-   tocando); o **`.html`** é o passo a passo (setas `←`/`→` ou `#passo=N`). Avisos de cobertura de fonte
-   (ex.: `→`) são esperados, não são falha.
+6. **Entregar.** Diga os caminhos e para que serve cada um: para **ver**, abra o **`.html`** no navegador,
+   que traz os controles (pausar/tocar, velocidade 0,25×–2×, zoom − / + / ajustar e o passo a passo com
+   setas `←`/`→` ou `#passo=N`; atalhos: Espaço, `[` `]`, `+` `-` `0`); o **`.svg`** é para **embutir** em
+   PR/README (toca sozinho, sem controles). Avisos de cobertura de fonte (ex.: `→`) são esperados, não são
+   falha.

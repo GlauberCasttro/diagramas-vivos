@@ -8,14 +8,14 @@ import { spawnSync } from 'node:child_process';
 
 export const CHROME = [process.env.DIAGRAMAS_VIVOS_CHROME, '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/usr/bin/google-chrome', '/usr/bin/chromium']
   .find((c) => c && existsSync(c));
-export function sondarChrome(html, { nome = 'sonda.html', hash = '' } = {}) {
+export function sondarChrome(html, { nome = 'sonda.html', hash = '', orcamento = 4000 } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'dv-smil-'));
   const arq = join(dir, nome);
   writeFileSync(arq, html);
   let r;
   try {
     r = spawnSync(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', `--user-data-dir=${join(dir, 'perfil')}`,
-    '--virtual-time-budget=4000', '--dump-dom', `file://${arq}${hash}`], { encoding: 'utf8', timeout: 60000 });
+    `--virtual-time-budget=${orcamento}`, '--dump-dom', `file://${arq}${hash}`], { encoding: 'utf8', timeout: 60000 });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

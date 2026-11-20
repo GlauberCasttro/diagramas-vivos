@@ -24,7 +24,9 @@ const CSS = `html, body { margin: 0; height: 100%; overflow: hidden; background:
 #barra .dots i { width: 18px; height: 3px; border-radius: 2px; background: rgba(var(--ink), .12); transition: background .3s var(--ease); }
 #barra .dots i.on { background: var(--on); }
 .botoes, #ctl { display: flex; gap: 6px; }
-#ctl { position: fixed; right: 12px; bottom: 12px; padding: 6px; border-radius: var(--r-ctl); z-index: 3; }
+#ctl { position: fixed; right: 12px; bottom: 12px; padding: 6px; border-radius: var(--r-ctl); z-index: 3; align-items: center; }
+#ctl .sep { width: 1px; align-self: stretch; margin: 6px 2px; background: var(--hair-2); }
+#r-vel { min-width: 52px; font-variant-numeric: tabular-nums; }
 button { font: inherit; font-size: 14px; color: var(--text); background: var(--raise); border: 1px solid var(--hair-2); border-radius: var(--r-ctl); min-width: 36px; height: 36px; padding: 0 10px; cursor: pointer; }
 button:hover { background: var(--raise-2); }
 button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
@@ -35,7 +37,9 @@ button[hidden] { display: none; }
 #vp .no.dim, #vp .aresta.dim, #vp .portas [data-aresta].dim { opacity: .2; }
 #vp .no.hl .card { stroke: var(--c); stroke-opacity: 1; stroke-width: 2.5; }
 #vp .aresta.hl .trace { stroke-opacity: 1; }
-#vp .aresta.hl .flow { opacity: .95; animation: fluxo 1.1s linear infinite; }
+#vp .aresta.hl .flow { opacity: .95; animation: fluxo calc(1.1s / var(--vel, 1)) linear infinite; }
+/* Barra de reprodução: pausado congela também as animações CSS (o SMIL para no stepper.js). */
+html.pausado #vp * { animation-play-state: paused !important; }
 /* No passo a passo os tokens SMIL e a chegada animada somem; ao sair, voltam (a cadeia nunca para). */
 html.passo-a-passo #vp .token, html.passo-a-passo #vp .chegada { display: none; }
 /* O <set> ativo do SMIL vence opacity do CSS: fora do passo, o .flow some por display; legendas fixas. */

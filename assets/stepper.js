@@ -2,7 +2,10 @@
    Origem: floorplan/assets/viewer.html (pan/zoom :1250-1347, centerOn :1411-1416, highlightFlow :1884-1905,
    teclado :2288-2304). Passo a passo guiado sem dependências: #passo=N (1-based, numeração global pelos
    flows em ordem) abre direto no passo N, sem transição. Câmera fixa (adendo 2): enquadra o diagrama
-   inteiro ao abrir e nunca se move entre passos; zoom/pan só manuais. */
+   inteiro ao abrir e nunca se move entre passos; zoom/pan só manuais.
+   Reprodução (F0.2): SMIL não tem playbackRate, então a timeline do SVG fica pausada e um loop de
+   requestAnimationFrame a avança (setCurrentTime) na velocidade escolhida; as animações CSS recebem a
+   mesma velocidade pela variável --vel e congelam com html.pausado. */
 (() => {
   const D = JSON.parse(document.getElementById('dados').textContent);
   const $ = (id) => document.getElementById(id);
@@ -130,7 +133,7 @@
     const b = $('b-tocar');
     b.hidden = semMovimento();
     b.textContent = timerTocar ? '\u275A\u275A' : '\u25B6';
-    b.setAttribute('aria-label', timerTocar ? 'Pausar' : 'Tocar');
+    b.setAttribute('aria-label', timerTocar ? 'Pausar passos' : 'Tocar passos');
   }
   function gravarHash() {
     try {
@@ -153,10 +156,48 @@
   function tocar() {
     if (semMovimento()) return;
     if (timerTocar) { parar(); atualizarBarra(); return; }
+    if (pausado) alternarPausa(); // tocar os passos é pedir movimento
     if (atual >= N) ir(0, false);
-    timerTocar = setInterval(() => ir(atual + 1, true), TOCAR_MS);
+    timerTocar = setInterval(() => ir(atual + 1, true), TOCAR_MS / vel);
     ir(atual + 1, true);
   }
+
+  // ---------------- reprodução: pausar e velocidade ----------------
+  const VELS = [0.25, 0.5, 0.75, 1, 1.5, 2];
+  const CHAVE_VEL = 'diagramas-vivos-vel';
+  let vel = 1;
+  try { const v = Number(localStorage.getItem(CHAVE_VEL)); if (VELS.includes(v)) vel = v; } catch (e) { /* sem storage: 1× */ }
+  let pausado = false;
+  let ultimo = 0;
+  svg.pauseAnimations(); // daqui em diante a timeline SMIL só anda pelo loop abaixo
+  function quadro(agora) {
+    // dt limitado: aba em segundo plano (rAF parado) não faz a animação saltar ao voltar
+    if (ultimo && !pausado && !semMovimento()) svg.setCurrentTime(svg.getCurrentTime() + (Math.min(agora - ultimo, 100) / 1000) * vel);
+    ultimo = agora;
+    requestAnimationFrame(quadro);
+  }
+  requestAnimationFrame(quadro);
+  function atualizarReproducao() {
+    const b = $('r-tocar'), v = $('r-vel');
+    b.hidden = v.hidden = semMovimento();
+    b.textContent = pausado ? '\u25B6' : '\u275A\u275A';
+    b.setAttribute('aria-label', pausado ? 'Retomar' : 'Pausar');
+    v.textContent = `${String(vel).replace('.', ',')}\u00D7`;
+    root.style.setProperty('--vel', String(vel));
+    root.classList.toggle('pausado', pausado);
+  }
+  function alternarPausa() {
+    pausado = !pausado;
+    if (pausado && timerTocar) { parar(); atualizarBarra(); }
+    atualizarReproducao();
+  }
+  function definirVel(v) {
+    vel = v;
+    try { localStorage.setItem(CHAVE_VEL, String(vel)); } catch (e) { /* sem storage: vale só nesta aba */ }
+    if (timerTocar) { clearInterval(timerTocar); timerTocar = setInterval(() => ir(atual + 1, true), TOCAR_MS / vel); }
+    atualizarReproducao();
+  }
+  const passoVel = (d) => definirVel(VELS[clamp(VELS.indexOf(vel) + d, 0, VELS.length - 1)]);
   const proximo = () => { parar(); ir(atual + 1, true); };
   const anterior = () => { parar(); if (atual > 1) ir(atual - 1, true); };
   const sair = () => { parar(); ir(0, true); };
@@ -169,15 +210,21 @@
   $('z-mais').onclick = () => zoomPor(1.25);
   $('z-menos').onclick = () => zoomPor(0.8);
   $('z-ajustar').onclick = () => ajustar(true);
+  $('r-tocar').onclick = alternarPausa;
+  $('r-vel').onclick = () => definirVel(VELS[(VELS.indexOf(vel) + 1) % VELS.length]);
 
   addEventListener('keydown', (ev) => {
     if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
     if (ev.key === 'ArrowRight') { ev.preventDefault(); proximo(); }
     else if (ev.key === 'ArrowLeft') { ev.preventDefault(); anterior(); }
     else if (ev.key === 'Escape') sair();
-    else if (ev.key === ' ') { ev.preventDefault(); tocar(); } // Espaço é sempre tocar/pausar (Enter ativa botões)
+    // Espaço: no passo a passo toca/pausa os passos; fora dele pausa/retoma a animação (Enter ativa botões)
+    else if (ev.key === ' ') { ev.preventDefault(); if (atual > 0) tocar(); else alternarPausa(); }
+    else if (ev.key === '[') passoVel(-1);
+    else if (ev.key === ']') passoVel(1);
     else if (ev.key === '+' || ev.key === '=') zoomPor(1.2);
     else if (ev.key === '-') zoomPor(0.83);
+    else if (ev.key === '0') ajustar(true);
   });
   addEventListener('hashchange', () => { const n = passoAtualDoHash(); if (n !== atual) { parar(); ir(n, false); } });
 
@@ -218,10 +265,12 @@
     if (semMovimento()) { parar(); fx.textContent = ''; }
     else if (atual) pulso(tokenAtual);
     atualizarBarra();
+    atualizarReproducao();
   };
   if (reduz.addEventListener) reduz.addEventListener('change', mudouMovimento); else if (reduz.addListener) reduz.addListener(mudouMovimento);
 
   rotularTema();
+  atualizarReproducao();
   atualizarBarra(); // barra no repouso: a área livre (e a câmera) não depende do passo aberto pelo hash
   ajustar(false); // câmera: uma vez, ao abrir
   ir(passoAtualDoHash(), false);

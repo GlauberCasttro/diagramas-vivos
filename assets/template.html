@@ -49,15 +49,19 @@
   </div>
   <div class="botoes">
     <button type="button" id="b-ant" aria-label="Passo anterior" title="Anterior (←)">&#8592;</button>
-    <button type="button" id="b-tocar" aria-label="Tocar" title="Tocar/pausar (Espaço)">&#9654;</button>
+    <button type="button" id="b-tocar" aria-label="Tocar passos" title="Tocar/pausar os passos (Espaço)">&#9654;</button>
     <button type="button" id="b-prox" aria-label="Próximo passo" title="Próximo (→)">&#8594;</button>
     <button type="button" id="b-sair" aria-label="Sair do passo a passo" title="Sair (Esc)">&#10005;</button>
   </div>
 </div>
-<div id="ctl" class="painel">
-  <button type="button" id="z-mais" aria-label="Aproximar" title="Aproximar">+</button>
-  <button type="button" id="z-menos" aria-label="Afastar" title="Afastar">&#8722;</button>
-  <button type="button" id="z-ajustar" aria-label="Ver tudo" title="Ver tudo">&#9633;</button>
+<div id="ctl" class="painel" role="toolbar" aria-label="Reprodução e zoom">
+  <button type="button" id="r-tocar" aria-label="Pausar" title="Pausar/tocar a animação (Espaço)">&#10074;&#10074;</button>
+  <button type="button" id="r-vel" aria-label="Velocidade" title="Velocidade ([ e ])">1&#215;</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button type="button" id="z-menos" aria-label="Afastar" title="Afastar (&#8722;)">&#8722;</button>
+  <button type="button" id="z-mais" aria-label="Aproximar" title="Aproximar (+)">+</button>
+  <button type="button" id="z-ajustar" aria-label="Ajustar" title="Ajustar à tela (0)">&#9633;</button>
+  <span class="sep" aria-hidden="true"></span>
   <button type="button" id="b-tema" aria-label="Tema" title="Tema"></button>
 </div>
 <script type="application/json" id="dados">/*__DADOS__*/</script>

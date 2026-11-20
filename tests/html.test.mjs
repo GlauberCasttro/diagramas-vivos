@@ -133,3 +133,94 @@ addEventListener('load', async () => {
   assert.deepEqual(r.cen, ['1', '0.8']);
   assert.deepEqual(r.flows.filter((f) => f.visivel).map((f) => f.id).sort(), ['chama', 'pede']);
 });
+
+// ---------- F0.2: barra de reprodução (pausar, velocidade, zoom) ----------
+test('barra de reprodução: botões com aria-label, velocidade lembrada, atalhos e --vel', async () => {
+  const { html } = await gerar(ler('requisicao.json'));
+  for (const rot of ['Pausar', 'Velocidade', 'Aproximar', 'Afastar', 'Ajustar'])
+    assert.match(html, new RegExp(`<button [^>]*aria-label="${rot}"`), rot);
+  assert.match(stepper, /diagramas-vivos-vel/);
+  assert.match(stepper, /pauseAnimations\(\)/);
+  assert.match(stepper, /setCurrentTime\(/);
+  assert.match(stepper, /requestAnimationFrame/);
+  assert.match(stepper, /--vel/);
+  assert.match(stepper, /TOCAR_MS \/ vel/);
+  assert.match(stepper, /const VELS = \[0\.25, 0\.5, 0\.75, 1, 1\.5, 2\];/);
+  for (const k of ["'['", "']'", "'0'"]) assert.ok(stepper.includes(k), `atalho ${k}`);
+  // CSS da página: o .flow do passo e o pulso seguem a velocidade; pausado congela as animações CSS
+  assert.match(html, /#vp \.aresta\.hl \.flow \{ opacity: \.95; animation: fluxo calc\(1\.1s \/ var\(--vel, 1\)\) linear infinite; \}/);
+  assert.match(html, /html\.pausado #vp \*[^{]*\{[^}]*animation-play-state: paused/);
+});
+
+// Chrome: velocidade, pausa e zoom de verdade (timeline SMIL guiada por requestAnimationFrame).
+test('reprodução no Chrome: 2× chega na 2ª aresta em ~metade do tempo; pausar congela; + e − mudam a escala', { skip: !CHROME && 'Chrome ausente', timeout: 90000 }, async (t) => {
+  const { html } = await gerar(ler('agente.json'));
+  const sonda = `<pre id="sonda"></pre><script>
+addEventListener('load', async () => {
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const s = document.querySelector('#vp svg'); const out = {};
+  const clicar = (rot) => document.querySelector('button[aria-label="' + rot + '"]').click();
+  const noToken = () => [...document.querySelectorAll('circle.token')].filter((e) => getComputedStyle(e).opacity !== '0')
+    .map((e) => e.querySelector('mpath').getAttribute('href'))[0] || null;
+  // tempo (ms de relógio) até o token entrar na 2ª aresta (#a-chama), partindo do instante 0 da timeline
+  async function ate2a() {
+    s.setCurrentTime(0); const t0 = performance.now();
+    while (noToken() !== '#a-chama') { if (performance.now() - t0 > 10000) return -1; await espera(10); }
+    return performance.now() - t0;
+  }
+  const escala = () => +(/scale\\(([\\d.]+)\\)/.exec(document.getElementById('vp').style.transform) || [0, 0])[1];
+  await espera(50);
+  out.v1 = await ate2a();
+  dispatchEvent(new KeyboardEvent('keydown', { key: ']' }));
+  dispatchEvent(new KeyboardEvent('keydown', { key: ']' }));
+  out.rotVel = document.querySelector('button[aria-label="Velocidade"]').textContent;
+  out.v2 = await ate2a();
+  out.varVel = getComputedStyle(document.documentElement).getPropertyValue('--vel').trim();
+  try { out.memoria = localStorage.getItem('diagramas-vivos-vel'); } catch (e) {}
+  for (let i = 0; i < 6; i++) dispatchEvent(new KeyboardEvent('keydown', { key: '[' })); // 2 → 0,25 (e para no mínimo)
+  out.rotVel025 = document.querySelector('button[aria-label="Velocidade"]').textContent;
+  out.v025 = await ate2a();
+  out.varVel025 = getComputedStyle(document.documentElement).getPropertyValue('--vel').trim();
+  out.durRepouso025 = getComputedStyle(document.querySelector('.flow-repouso')).animationDuration;
+  clicar('Pausar');
+  const p0 = s.getCurrentTime(); await espera(400); const p1 = s.getCurrentTime();
+  out.pausa = { p0, p1, estado: getComputedStyle(document.querySelector('.flow-repouso')).animationPlayState,
+    rot: document.getElementById('r-tocar').getAttribute('aria-label') };
+  clicar('Retomar'); await espera(300); out.retoma = s.getCurrentTime() > p1;
+  const k0 = escala(); clicar('Aproximar'); const k1 = escala(); clicar('Afastar'); clicar('Afastar'); const k2 = escala();
+  dispatchEvent(new KeyboardEvent('keydown', { key: '0' })); const k3 = escala();
+  document.getElementById('palco').dispatchEvent(new WheelEvent('wheel', { deltaY: -200, clientX: 400, clientY: 300, bubbles: true, cancelable: true }));
+  const k4 = escala();
+  out.zoom = { k0, k1, k2, k3, k4 };
+  document.getElementById('sonda').textContent = JSON.stringify(out);
+});
+</script>`;
+  // Sob --virtual-time-budget o Chrome headless quase não dispara requestAnimationFrame (2 quadros em 1 s);
+  // o calço no <head> entrega quadros de 16 ms por setTimeout, que o tempo virtual avança de forma
+  // determinística. O rAF de verdade é conferido no Chrome visível (report da F0.2).
+  const calco = `<script>window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 16);</script>`;
+  const pagina = html.replace('<head>', `<head>${calco}`).replace('</body>', `${sonda}</body>`);
+  const out = sondarChrome(pagina, { orcamento: 20000 });
+  assert.ok(out.v1 > 0 && out.v2 > 0 && out.v025 > 0, JSON.stringify(out));
+  const r = out.v2 / out.v1;
+  t.diagnostic(`1×: ${out.v1} ms, 2×: ${out.v2} ms (razão ${r.toFixed(3)}); zoom ${JSON.stringify(out.zoom)}`);
+  assert.ok(r > 0.4 && r < 0.6, `2× / 1× = ${r.toFixed(2)} (${out.v1} ms vs ${out.v2} ms)`);
+  assert.equal(out.rotVel, '2×');
+  assert.equal(out.varVel, '2');
+  assert.equal(out.memoria, '2');
+  const r025 = out.v025 / out.v1;
+  t.diagnostic(`0,25×: ${out.v025} ms (razão ${r025.toFixed(3)})`);
+  assert.ok(r025 > 3.6 && r025 < 4.4, `0,25× / 1× = ${r025.toFixed(2)}`);
+  assert.equal(out.rotVel025, '0,25×');
+  assert.equal(out.varVel025, '0.25');
+  assert.equal(out.durRepouso025, '9.6s', 'tracejado de repouso também desacelera (2,4 s / 0,25)');
+  assert.equal(out.pausa.p1, out.pausa.p0, 'pausar congela getCurrentTime');
+  assert.equal(out.pausa.estado, 'paused');
+  assert.equal(out.pausa.rot, 'Retomar');
+  assert.ok(out.retoma, 'retomar volta a avançar');
+  const z = out.zoom;
+  assert.ok(z.k1 > z.k0, `+ aumenta: ${z.k0} → ${z.k1}`);
+  assert.ok(z.k2 < z.k1, `− diminui: ${z.k1} → ${z.k2}`);
+  assert.equal(z.k3, z.k0, '0 reenquadra');
+  assert.ok(z.k4 > z.k3, `roda aproxima: ${z.k3} → ${z.k4}`);
+});
